@@ -8,6 +8,34 @@ import 'organizer_dashboard.dart';
 import 'staff_dashboard.dart';
 import 'super_admin_dashboard.dart';
 
+// ── Category colour map ─────────────────────────────────────────────────────
+const _categoryColors = <String, Color>{
+  'Technology':      Color(0xFF1565C0),
+  'Business':        Color(0xFF2E7D32),
+  'Arts & Culture':  Color(0xFF6A1B9A),
+  'Education':       Color(0xFFE65100),
+  'Workshop':        Color(0xFF00695C),
+  'Seminar':         Color(0xFF4527A0),
+  'Conference':      Color(0xFF283593),
+  'Networking':      Color(0xFF37474F),
+  'Health':          Color(0xFFC62828),
+  'Finance':         Color(0xFF558B2F),
+};
+
+Color _categoryColor(String cat) =>
+    _categoryColors[cat] ?? const Color(0xFF2D2D2D);
+
+// ── Time slot filter options ────────────────────────────────────────────────
+enum _TimeFilter { all, today, thisWeek, thisMonth }
+
+const _timeFilterLabels = {
+  _TimeFilter.all:       'All',
+  _TimeFilter.today:     'Today',
+  _TimeFilter.thisWeek:  'This Week',
+  _TimeFilter.thisMonth: 'This Month',
+};
+
+// ───────────────────────────────────────────────────────────────────────────
 class AttendeeDashboard extends StatefulWidget {
   const AttendeeDashboard({super.key});
 
@@ -18,20 +46,24 @@ class AttendeeDashboard extends StatefulWidget {
 class _AttendeeDashboardState extends State<AttendeeDashboard> {
   final _auth = AuthService();
 
-  // IDs of events the attendee has registered for
+  // Registration state — maps event id → registered bool
   final Set<String> _registeredIds = {};
 
-  // Search filter
+  // Pending event after auth
+  Map<String, dynamic>? _pendingRegistrationEvent;
+
+  // ── Filters ──────────────────────────────────────────
   final _searchCtrl = TextEditingController();
   String _searchQuery = '';
-  Map<String, dynamic>? _pendingRegistrationEvent;
+  String? _selectedCategory;
+  String? _selectedOrganizerId;
+  _TimeFilter _timeFilter = _TimeFilter.all;
 
   @override
   void initState() {
     super.initState();
-    _searchCtrl.addListener(() {
-      setState(() => _searchQuery = _searchCtrl.text.trim().toLowerCase());
-    });
+    _searchCtrl.addListener(() =>
+        setState(() => _searchQuery = _searchCtrl.text.trim().toLowerCase()));
   }
 
   @override
@@ -39,6 +71,154 @@ class _AttendeeDashboardState extends State<AttendeeDashboard> {
     _searchCtrl.dispose();
     super.dispose();
   }
+
+  // ── Helpers ──────────────────────────────────────────
+
+  /// Returns the organizer's full name from an event, or '' if not found.
+  String _organizerName(Map<String, dynamic> event) {
+    final orgId = event['organizerId'] as String? ?? '';
+    final match = _auth.allUsers.where((u) => u.id == orgId).toList();
+    return match.isNotEmpty ? match.first.fullName : '';
+  }
+
+  /// Resolves building + room name for an event (via its bookingId).
+  String _locationLabel(Map<String, dynamic> event) {
+    final bookingId = event['bookingId'] as String?;
+    if (bookingId == null) return '';
+    final booking = _auth.allBookings
+        .where((b) => b['id'] == bookingId)
+        .toList();
+    if (booking.isEmpty) return '';
+    final roomId = booking.first['roomId'] as String? ?? '';
+    final rooms = _auth.allRooms.where((r) => r['id'] == roomId).toList();
+    if (rooms.isEmpty) return '';
+    final room = rooms.first;
+    final buildingId = room['buildingId'] as String? ?? '';
+    final buildings =
+        _auth.allBuildings.where((b) => b['id'] == buildingId).toList();
+    final buildingName =
+        buildings.isNotEmpty ? buildings.first['name'] as String : '';
+    final roomName = room['name'] as String? ?? '';
+    if (buildingName.isEmpty && roomName.isEmpty) return '';
+    if (buildingName.isEmpty) return roomName;
+    if (roomName.isEmpty) return buildingName;
+    return '$buildingName · $roomName';
+  }
+
+  String _formatDateTime(DateTime dt) {
+    final months = [
+      'Jan','Feb','Mar','Apr','May','Jun',
+      'Jul','Aug','Sep','Oct','Nov','Dec'
+    ];
+    final h = dt.hour.toString().padLeft(2, '0');
+    final m = dt.minute.toString().padLeft(2, '0');
+    return '${dt.day} ${months[dt.month - 1]} ${dt.year} · $h:$m';
+  }
+
+  String _formatDate(DateTime dt) {
+    final months = [
+      'Jan','Feb','Mar','Apr','May','Jun',
+      'Jul','Aug','Sep','Oct','Nov','Dec'
+    ];
+    return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+  }
+
+  String _formatTime(DateTime dt) {
+    final h = dt.hour.toString().padLeft(2, '0');
+    final m = dt.minute.toString().padLeft(2, '0');
+    return '$h:$m';
+  }
+
+  // ── Filtering logic ───────────────────────────────────
+
+  List<Map<String, dynamic>> _applyFilters(List<Map<String, dynamic>> events) {
+    final now = DateTime.now();
+    return events.where((e) {
+      final title = (e['title'] as String? ?? '').toLowerCase();
+      final category = (e['category'] as String? ?? '');
+      final orgId = (e['organizerId'] as String? ?? '');
+      final start = e['start'] as DateTime?;
+      final status = (e['status'] as String? ?? '');
+
+      // Only published events
+      if (status != 'published') return false;
+
+      // Search
+      if (_searchQuery.isNotEmpty && !title.contains(_searchQuery)) {
+        return false;
+      }
+
+      // Category
+      if (_selectedCategory != null && _selectedCategory != category) {
+        return false;
+      }
+
+      // Organizer
+      if (_selectedOrganizerId != null && _selectedOrganizerId != orgId) {
+        return false;
+      }
+
+      // Time filter
+      if (start != null) {
+        switch (_timeFilter) {
+          case _TimeFilter.today:
+            if (start.day != now.day ||
+                start.month != now.month ||
+                start.year != now.year) return false;
+            break;
+          case _TimeFilter.thisWeek:
+            final weekEnd = now.add(const Duration(days: 7));
+            if (start.isBefore(now) || start.isAfter(weekEnd)) return false;
+            break;
+          case _TimeFilter.thisMonth:
+            if (start.month != now.month || start.year != now.year) {
+              return false;
+            }
+            break;
+          case _TimeFilter.all:
+            break;
+        }
+      }
+
+      return true;
+    }).toList()
+      ..sort((a, b) {
+        final sa = a['start'] as DateTime?;
+        final sb = b['start'] as DateTime?;
+        if (sa == null && sb == null) return 0;
+        if (sa == null) return 1;
+        if (sb == null) return -1;
+        return sa.compareTo(sb);
+      });
+  }
+
+  // ── Double-booking detection ─────────────────────────
+
+  /// Returns the conflicting registered event, or null if no conflict.
+  Map<String, dynamic>? _conflictingEvent(Map<String, dynamic> newEvent) {
+    final newStart = newEvent['start'] as DateTime?;
+    final newEnd = newEvent['end'] as DateTime?;
+    if (newStart == null || newEnd == null) return null;
+
+    for (final regId in _registeredIds) {
+      final regEvent = _auth.allEvents
+          .where((e) => e['id'] == regId)
+          .toList();
+      if (regEvent.isEmpty) continue;
+      final reg = regEvent.first;
+      final regStart = reg['start'] as DateTime?;
+      final regEnd = reg['end'] as DateTime?;
+      if (regStart == null || regEnd == null) continue;
+
+      // Overlap: newStart < regEnd AND newEnd > regStart
+      if (newStart.isBefore(regEnd) && newEnd.isAfter(regStart)) {
+        return reg;
+      }
+    }
+    return null;
+  }
+
+  // ── Registration ─────────────────────────────────────
 
   Future<void> _toggleRegistration(Map<String, dynamic> event) async {
     if (!_auth.isLoggedIn) {
@@ -51,286 +231,140 @@ class _AttendeeDashboardState extends State<AttendeeDashboard> {
       if (!ok || !_auth.isLoggedIn) return;
       final pending = _pendingRegistrationEvent;
       _pendingRegistrationEvent = null;
-      if (pending != null) {
-        _completeRegistration(pending);
-      }
+      if (pending != null) _doRegister(pending);
+      return;
+    }
+    _doRegister(event);
+  }
+
+  void _doRegister(Map<String, dynamic> event) {
+    final id = event['id'] as String;
+    if (_registeredIds.contains(id)) {
+      setState(() => _registeredIds.remove(id));
+      _showSnack('Unregistered from "${event['title']}".');
       return;
     }
 
-    final id = event['id'] as String;
-    setState(() {
-      if (_registeredIds.contains(id)) {
-        _registeredIds.remove(id);
-        _showSnack('Unregistered from "${event['title']}"');
-      } else {
-        _registeredIds.add(id);
-        _showSnack('Registered for "${event['title']}"!');
-      }
-    });
+    final conflict = _conflictingEvent(event);
+    if (conflict != null) {
+      _showConflictDialog(event, conflict);
+      return;
+    }
+
+    setState(() => _registeredIds.add(id));
+    _showSnack('You\'re registered for "${event['title']}"!');
   }
 
-  void _completeRegistration(Map<String, dynamic> event) {
-    final id = event['id'] as String;
-    setState(() {
-      if (_registeredIds.contains(id)) {
-        _registeredIds.remove(id);
-        _showSnack('Unregistered from "${event['title']}"');
-      } else {
-        _registeredIds.add(id);
-        _showSnack('Event registered successfully.');
-      }
-    });
-  }
+  void _showConflictDialog(
+      Map<String, dynamic> newEvent, Map<String, dynamic> existing) {
+    final existingStart = existing['start'] as DateTime?;
+    final existingEnd = existing['end'] as DateTime?;
+    final timeStr = existingStart != null && existingEnd != null
+        ? '${_formatTime(existingStart)} – ${_formatTime(existingEnd)}'
+            ' on ${_formatDate(existingStart)}'
+        : '';
 
-  void _showSnack(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg),
-      backgroundColor: const Color(0xFF2D2D2D),
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-    ));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final user = _auth.currentUser;
-
-    // Read from shared store
-    final allEvents = _auth.allEvents;
-
-    // Filtered list for "Available Events"
-    final filteredEvents = allEvents.where((e) {
-      if (_searchQuery.isEmpty) return true;
-      return (e['title'] as String).toLowerCase().contains(_searchQuery);
-    }).toList();
-
-    // Events the attendee is registered for (in full)
-    final myEvents = allEvents
-        .where((e) => _registeredIds.contains(e['id'] as String))
-        .toList();
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
-      appBar: AppBar(
+    showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
         backgroundColor: const Color(0xFFFFFFFF),
-        elevation: 0,
-        title: const Text(
-          'EventFlow',
-          style: TextStyle(
-            color: Color(0xFF1A1A1A),
-            fontWeight: FontWeight.w800,
-            fontSize: 18,
-          ),
-        ),
-        actions: [
-          if (!_auth.isLoggedIn) ...[
-            TextButton(
-              onPressed: () async {
-                final ok = await UnifiedAuthSheet.show(
-                  context,
-                  intent: AuthIntent.generic,
-                  defaultRole: UserRole.attendee,
-                );
-                if (!ok) return;
-                await _handleAuthFromLanding();
-              },
-              child: const Text(
-                'Login',
-                style: TextStyle(
-                  color: Color(0xFF1A1A1A),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            TextButton(
-              onPressed: () async {
-                final ok = await UnifiedAuthSheet.show(
-                  context,
-                  intent: AuthIntent.generic,
-                  defaultRole: UserRole.attendee,
-                );
-                if (!ok) return;
-                await _handleAuthFromLanding();
-              },
-              child: const Text(
-                'Sign up',
-                style: TextStyle(
-                  color: Color(0xFF1A1A1A),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ] else ...[
-            TextButton(
-              onPressed: _goToMyDashboard,
-              child: const Text(
-                'Dashboard',
-                style: TextStyle(
-                  color: Color(0xFF1A1A1A),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.person_outline, color: Color(0xFF1A1A1A)),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ProfileScreen()),
-              ).then((_) => setState(() {})),
-            ),
-            TextButton(
-              onPressed: () {
-                _auth.logout();
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (_) => const LandingScreen()),
-                  (route) => false,
-                );
-              },
-              child: const Text(
-                'Logout',
-                style: TextStyle(
-                  color: Color(0xFF1A1A1A),
-                  fontWeight: FontWeight.w600,
-                ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: const [
+            Icon(Icons.warning_amber_rounded, color: Color(0xFF1A1A1A), size: 22),
+            SizedBox(width: 8),
+            Text(
+              'Time Conflict',
+              style: TextStyle(
+                color: Color(0xFF1A1A1A),
+                fontWeight: FontWeight.w700,
+                fontSize: 16,
               ),
             ),
           ],
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _heroSection(),
-            const SizedBox(height: 24),
-            _featuredEventsSection(filteredEvents),
-            const SizedBox(height: 24),
-            _howItWorks(),
-            const SizedBox(height: 24),
-            _forVenueOwners(),
-            const SizedBox(height: 24),
-
-            // ── Stats ──────────────────────────────
-            Row(
-              children: [
-                Expanded(
-                  child: _statCard(
-                      'Registered',
-                      '${_registeredIds.length}',
-                      Icons.confirmation_num_outlined,
-                      const Color(0xFF2D2D2D)),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: _statCard(
-                      'Available',
-                      '${allEvents.length}',
-                      Icons.event_available_outlined,
-                      const Color(0xFF6B6B6B)),
-                ),
-              ],
+            const Text(
+              'You are already registered for another event at this time. Please select a different event.',
+              style: TextStyle(color: Color(0xFF1A1A1A), height: 1.5),
             ),
-            const SizedBox(height: 24),
-
-            // ── My Schedule ────────────────────────
-            if (myEvents.isNotEmpty) ...[
-              const Text('My Schedule',
-                  style: TextStyle(
-                      color: Color(0xFF1A1A1A),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700)),
-              const SizedBox(height: 12),
-              ...myEvents.map((e) => _myEventTile(e)),
-              const SizedBox(height: 24),
-            ],
-
-            // ── Search Box ─────────────────────────
-            const Text('Available Events',
-                style: TextStyle(
-                    color: Color(0xFF1A1A1A),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700)),
             const SizedBox(height: 12),
-            TextField(
-              controller: _searchCtrl,
-              style: const TextStyle(color: Color(0xFF1A1A1A)),
-              decoration: InputDecoration(
-                hintText: 'Search events by name…',
-                hintStyle: const TextStyle(color: Color(0xFF9E9E9E)),
-                prefixIcon: const Icon(Icons.search,
-                    color: Color(0xFF2D2D2D), size: 20),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.close,
-                            color: Color(0xFF6B6B6B), size: 18),
-                        onPressed: () {
-                          _searchCtrl.clear();
-                        },
-                      )
-                    : null,
-                filled: true,
-                fillColor: const Color(0xFFFFFFFF),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE8E8E8)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE8E8E8)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      const BorderSide(color: Color(0xFF2D2D2D), width: 1.5),
-                ),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE0E0E0)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    existing['title'] as String? ?? '',
+                    style: const TextStyle(
+                      color: Color(0xFF1A1A1A),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                  if (timeStr.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.schedule_outlined,
+                            size: 13, color: Color(0xFF6B6B6B)),
+                        const SizedBox(width: 4),
+                        Text(
+                          timeStr,
+                          style: const TextStyle(
+                            color: Color(0xFF6B6B6B),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
               ),
             ),
-            const SizedBox(height: 14),
-
-            // ── Events List ────────────────────────
-            if (allEvents.isEmpty)
-              _emptyState(
-                  'No events yet.\nCheck back later when an organizer has created events.')
-            else if (filteredEvents.isEmpty)
-              _emptyState('No events match "$_searchQuery".')
-            else
-              ...filteredEvents.map((e) => _eventCard(e)),
-
-            // ── Interests ─────────────────────────
-            const SizedBox(height: 24),
-            if ((user?.interests ?? []).isNotEmpty) ...[
-              const Text('Your Interests',
-                  style: TextStyle(
-                      color: Color(0xFF1A1A1A),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700)),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: user!.interests
-                    .map((i) => Chip(
-                          label: Text(i,
-                              style: const TextStyle(
-                                  color: Color(0xFF1A1A1A), fontSize: 12)),
-                          backgroundColor: const Color(0xFFF0F0F0),
-                          side: const BorderSide(color: Color(0xFFE8E8E8)),
-                        ))
-                    .toList(),
-              ),
-            ],
           ],
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Got it',
+              style: TextStyle(
+                color: Color(0xFF2D2D2D),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
+  void _showSnack(String msg, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: isError ? const Color(0xFFB71C1C) : const Color(0xFF2D2D2D),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
+  // ── Navigation ───────────────────────────────────────
+
   void _goToMyDashboard() {
     final u = _auth.currentUser;
     if (u == null) return;
-    Widget screen = const AttendeeDashboard();
+    Widget screen;
     switch (u.role) {
       case UserRole.attendee:
         screen = const AttendeeDashboard();
@@ -356,252 +390,952 @@ class _AttendeeDashboardState extends State<AttendeeDashboard> {
     if (!_auth.isLoggedIn) return;
     final u = _auth.currentUser;
     if (u == null) return;
-
-    // If they signed in as attendee, we can just refresh the landing.
     if (u.role == UserRole.attendee) {
       setState(() {});
       return;
     }
-
-    // Otherwise, take them to the correct role dashboard.
     _goToMyDashboard();
   }
 
-  Widget _heroSection() {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFFFF),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE8E8E8)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0D000000),
-            blurRadius: 18,
-            offset: Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Plan, Book, and Manage Events Seamlessly',
-            style: TextStyle(
-              color: Color(0xFF1A1A1A),
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              height: 1.1,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Discover events, reserve venues, and manage everything in one place—built for attendees, organizers, and venue owners.',
-            style: TextStyle(color: Color(0xFF6B6B6B), height: 1.4),
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              ElevatedButton(
-                onPressed: () async {
-                  if (!_auth.isLoggedIn) {
-                    final ok = await UnifiedAuthSheet.show(
-                      context,
-                      intent: AuthIntent.organizerCreateEvent,
-                      defaultRole: UserRole.organizer,
-                    );
-                    if (!ok) return;
-                  }
-                  _goToMyDashboard();
-                },
-                child: const Text('Create Event'),
-              ),
-              OutlinedButton(
-                onPressed: () {},
-                child: const Text('Find Events'),
-              ),
-              OutlinedButton(
-                onPressed: () async {
-                  if (!_auth.isLoggedIn) {
-                    final ok = await UnifiedAuthSheet.show(
-                      context,
-                      intent: AuthIntent.ownerListVenue,
-                      defaultRole: UserRole.staff,
-                    );
-                    if (!ok) return;
-                  }
-                  _goToMyDashboard();
-                },
-                child: const Text('List Your Venue'),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+  // ── Build ─────────────────────────────────────────────
 
-  Widget _featuredEventsSection(List<Map<String, dynamic>> events) {
-    final featured = events.take(3).toList();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Featured Events',
-          style: TextStyle(
-            color: Color(0xFF1A1A1A),
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 12),
-        if (featured.isEmpty)
-          const Text(
-            'No featured events yet. Check back soon.',
-            style: TextStyle(color: Color(0xFF6B6B6B)),
-          )
-        else
-          ...featured.map((e) {
-            final location = (e['location'] as String?) ?? '';
-            return Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFFFFF),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFE8E8E8)),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x0A000000),
-                    blurRadius: 16,
-                    offset: Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 54,
-                      height: 54,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF2F2F2),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Icon(Icons.local_activity_outlined,
-                          color: Color(0xFF2D2D2D)),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            e['title'] as String,
-                            style: const TextStyle(
-                              color: Color(0xFF1A1A1A),
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          if (location.isNotEmpty)
-                            Text(
-                              location,
-                              style: const TextStyle(
-                                color: Color(0xFF6B6B6B),
-                                fontSize: 12,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    const Icon(Icons.chevron_right_rounded,
-                        color: Color(0xFF6B6B6B)),
-                  ],
+  @override
+  Widget build(BuildContext context) {
+    final allEvents = _auth.allEvents;
+    final filteredEvents = _applyFilters(allEvents);
+    final now = DateTime.now();
+    final upcomingEvents = filteredEvents
+        .where((e) {
+          final start = e['start'] as DateTime?;
+          return start != null && start.isAfter(now);
+        })
+        .take(5)
+        .toList();
+    final myEvents = allEvents
+        .where((e) => _registeredIds.contains(e['id'] as String))
+        .toList()
+      ..sort((a, b) {
+        final sa = a['start'] as DateTime?;
+        final sb = b['start'] as DateTime?;
+        if (sa == null && sb == null) return 0;
+        if (sa == null) return 1;
+        if (sb == null) return -1;
+        return sa.compareTo(sb);
+      });
+
+    // Build category and organizer lists for filters
+    final categories = allEvents
+        .map((e) => e['category'] as String? ?? '')
+        .where((c) => c.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+    final organizers = _auth.allUsers
+        .where((u) => u.role == UserRole.organizer)
+        .toList();
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFFAFAFA),
+      appBar: _buildAppBar(),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Welcome banner ─────────────────────────
+            _welcomeBanner(),
+            const SizedBox(height: 24),
+
+            // ── Stats row ──────────────────────────────
+            _statsRow(allEvents.length),
+            const SizedBox(height: 24),
+
+            // ── My Schedule ────────────────────────────
+            if (myEvents.isNotEmpty) ...[
+              _sectionHeader('My Schedule', Icons.calendar_today_outlined),
+              const SizedBox(height: 12),
+              ...myEvents.map((e) => _myScheduleTile(e)),
+              const SizedBox(height: 24),
+            ],
+
+            // ── Upcoming Events ─────────────────────────
+            _sectionHeader('Upcoming Events', Icons.upcoming_outlined),
+            const SizedBox(height: 12),
+            if (upcomingEvents.isEmpty)
+              _emptyState('No upcoming events right now.\nCheck back soon.')
+            else
+              SizedBox(
+                height: 220,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: upcomingEvents.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 12),
+                  itemBuilder: (_, i) =>
+                      _upcomingEventCard(upcomingEvents[i]),
                 ),
               ),
-            );
-          }),
+            const SizedBox(height: 24),
+
+            // ── Search & Filters ───────────────────────
+            _sectionHeader('Browse Events', Icons.search_outlined),
+            const SizedBox(height: 12),
+            _searchBar(),
+            const SizedBox(height: 10),
+            _filterRow(categories, organizers),
+            const SizedBox(height: 14),
+
+            // ── Events list ────────────────────────────
+            if (filteredEvents.isEmpty)
+              _emptyState(
+                _searchQuery.isNotEmpty
+                    ? 'No events match "$_searchQuery".'
+                    : 'No events found for the selected filters.',
+              )
+            else
+              ...filteredEvents.map((e) => _eventCard(e)),
+
+            // ── For Venue Owners promo ─────────────────
+            const SizedBox(height: 24),
+            _venueOwnerBanner(),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── AppBar ────────────────────────────────────────────
+
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      backgroundColor: const Color(0xFFFFFFFF),
+      elevation: 0,
+      title: const Text(
+        'EventFlow',
+        style: TextStyle(
+          color: Color(0xFF1A1A1A),
+          fontWeight: FontWeight.w800,
+          fontSize: 18,
+        ),
+      ),
+      actions: [
+        if (!_auth.isLoggedIn) ...[
+          TextButton(
+            onPressed: () async {
+              final ok = await UnifiedAuthSheet.show(
+                context,
+                intent: AuthIntent.generic,
+                defaultRole: UserRole.attendee,
+              );
+              if (!ok) return;
+              await _handleAuthFromLanding();
+            },
+            child: const Text(
+              'Login',
+              style: TextStyle(color: Color(0xFF1A1A1A), fontWeight: FontWeight.w600),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              final ok = await UnifiedAuthSheet.show(
+                context,
+                intent: AuthIntent.generic,
+                defaultRole: UserRole.attendee,
+              );
+              if (!ok) return;
+              await _handleAuthFromLanding();
+            },
+            child: const Text(
+              'Sign up',
+              style: TextStyle(color: Color(0xFF1A1A1A), fontWeight: FontWeight.w600),
+            ),
+          ),
+        ] else ...[
+          TextButton(
+            onPressed: _goToMyDashboard,
+            child: const Text(
+              'Dashboard',
+              style: TextStyle(color: Color(0xFF1A1A1A), fontWeight: FontWeight.w600),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.person_outline, color: Color(0xFF1A1A1A)),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+            ).then((_) => setState(() {})),
+          ),
+          TextButton(
+            onPressed: () {
+              _auth.logout();
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const LandingScreen()),
+                (route) => false,
+              );
+            },
+            child: const Text(
+              'Logout',
+              style: TextStyle(color: Color(0xFF1A1A1A), fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
       ],
     );
   }
 
-  Widget _howItWorks() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  // ── Welcome banner ────────────────────────────────────
+
+  Widget _welcomeBanner() {
+    final user = _auth.currentUser;
+    final greeting = user != null
+        ? 'Welcome back, ${user.fullName.split(' ').first}!'
+        : 'Discover events near you';
+    final subtitle = user != null
+        ? 'Browse, register, and manage your upcoming events.'
+        : 'Sign in to register for events and build your schedule.';
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  greeting,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    color: Color(0xFFB0B0B0),
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
+                ),
+                if (!_auth.isLoggedIn) ...[
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    height: 38,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        final ok = await UnifiedAuthSheet.show(
+                          context,
+                          intent: AuthIntent.attendeeRegister,
+                          defaultRole: UserRole.attendee,
+                        );
+                        if (!ok) return;
+                        await _handleAuthFromLanding();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: const Color(0xFF1A1A1A),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        textStyle: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      child: const Text('Get Started'),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(Icons.event_outlined, color: Colors.white, size: 28),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Stats row ─────────────────────────────────────────
+
+  Widget _statsRow(int totalEvents) {
+    return Row(
       children: [
-        const Text(
-          'How it works',
-          style: TextStyle(
-            color: Color(0xFF1A1A1A),
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
+        Expanded(
+          child: _statCard(
+            label: 'Available',
+            value: '$totalEvents',
+            icon: Icons.event_available_outlined,
           ),
         ),
-        const SizedBox(height: 12),
-        _stepCard(
-          icon: Icons.search,
-          title: 'Create or discover events',
-          subtitle: 'Browse public events or create your own in minutes.',
+        const SizedBox(width: 12),
+        Expanded(
+          child: _statCard(
+            label: 'Registered',
+            value: '${_registeredIds.length}',
+            icon: Icons.confirmation_num_outlined,
+          ),
         ),
-        const SizedBox(height: 10),
-        _stepCard(
-          icon: Icons.meeting_room_outlined,
-          title: 'Book venues بسهولة',
-          subtitle: 'Find available rooms that match your schedule and capacity.',
-        ),
-        const SizedBox(height: 10),
-        _stepCard(
-          icon: Icons.people_outline,
-          title: 'Manage attendees',
-          subtitle: 'Track registrations and keep your event organized.',
+        const SizedBox(width: 12),
+        Expanded(
+          child: _statCard(
+            label: 'Upcoming',
+            value: '${_auth.allEvents.where((e) {
+              final start = e['start'] as DateTime?;
+              return start != null && start.isAfter(DateTime.now()) &&
+                  e['status'] == 'published';
+            }).length}',
+            icon: Icons.schedule_outlined,
+          ),
         ),
       ],
     );
   }
 
-  Widget _stepCard({
+  Widget _statCard({
+    required String label,
+    required String value,
     required IconData icon,
-    required String title,
-    required String subtitle,
   }) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
       decoration: BoxDecoration(
         color: const Color(0xFFFFFFFF),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: const Color(0xFFE8E8E8)),
       ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: const Color(0xFF2D2D2D), size: 20),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Color(0xFF1A1A1A),
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFF6B6B6B),
+              fontSize: 11,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Section header ─────────────────────────────────────
+
+  Widget _sectionHeader(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, color: const Color(0xFF1A1A1A), size: 18),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(
+            color: Color(0xFF1A1A1A),
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Search bar ────────────────────────────────────────
+
+  Widget _searchBar() {
+    return TextField(
+      controller: _searchCtrl,
+      style: const TextStyle(color: Color(0xFF1A1A1A)),
+      decoration: InputDecoration(
+        hintText: 'Search events by name…',
+        hintStyle: const TextStyle(color: Color(0xFF9E9E9E)),
+        prefixIcon: const Icon(Icons.search, color: Color(0xFF2D2D2D), size: 20),
+        suffixIcon: _searchQuery.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.close, color: Color(0xFF6B6B6B), size: 18),
+                onPressed: _searchCtrl.clear,
+              )
+            : null,
+        filled: true,
+        fillColor: const Color(0xFFFFFFFF),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFE8E8E8)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFE8E8E8)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF2D2D2D), width: 1.5),
+        ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 12),
+      ),
+    );
+  }
+
+  // ── Filter row ────────────────────────────────────────
+
+  Widget _filterRow(List<String> categories, List<UserModel> organizers) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF0F0F0),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: const Color(0xFF2D2D2D)),
+          // ── Time slot filter ──────────────
+          _FilterDropdown<_TimeFilter>(
+            icon: Icons.schedule_outlined,
+            label: _timeFilterLabels[_timeFilter]!,
+            value: _timeFilter,
+            items: _TimeFilter.values
+                .map((f) => DropdownMenuItem(
+                      value: f,
+                      child: Text(_timeFilterLabels[f]!),
+                    ))
+                .toList(),
+            onChanged: (v) => setState(() => _timeFilter = v!),
           ),
+          const SizedBox(width: 8),
+
+          // ── Category filter ───────────────
+          _FilterDropdown<String?>(
+            icon: Icons.category_outlined,
+            label: _selectedCategory ?? 'Category',
+            value: _selectedCategory,
+            items: [
+              const DropdownMenuItem<String?>(value: null, child: Text('All Categories')),
+              ...categories.map(
+                (c) => DropdownMenuItem<String?>(value: c, child: Text(c)),
+              ),
+            ],
+            onChanged: (v) => setState(() => _selectedCategory = v),
+          ),
+          const SizedBox(width: 8),
+
+          // ── Organizer filter ──────────────
+          _FilterDropdown<String?>(
+            icon: Icons.person_outline,
+            label: _selectedOrganizerId != null
+                ? organizers
+                    .where((o) => o.id == _selectedOrganizerId)
+                    .map((o) => o.fullName.split(' ').first)
+                    .firstOrNull ?? 'Organizer'
+                : 'Organizer',
+            value: _selectedOrganizerId,
+            items: [
+              const DropdownMenuItem<String?>(value: null, child: Text('All Organizers')),
+              ...organizers.map(
+                (o) => DropdownMenuItem<String?>(value: o.id, child: Text(o.fullName)),
+              ),
+            ],
+            onChanged: (v) => setState(() => _selectedOrganizerId = v),
+          ),
+
+          // ── Clear all filters ─────────────
+          if (_selectedCategory != null ||
+              _selectedOrganizerId != null ||
+              _timeFilter != _TimeFilter.all ||
+              _searchQuery.isNotEmpty) ...[
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () {
+                _searchCtrl.clear();
+                setState(() {
+                  _selectedCategory = null;
+                  _selectedOrganizerId = null;
+                  _timeFilter = _TimeFilter.all;
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1A1A1A),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.close, color: Colors.white, size: 13),
+                    SizedBox(width: 4),
+                    Text(
+                      'Clear',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ── Upcoming event card (horizontal scroll) ───────────
+
+  Widget _upcomingEventCard(Map<String, dynamic> e) {
+    final category = (e['category'] as String? ?? '');
+    final catColor = _categoryColor(category);
+    final start = e['start'] as DateTime?;
+    final end = e['end'] as DateTime?;
+    final location = _locationLabel(e);
+    final organizer = _organizerName(e);
+    final registered = _registeredIds.contains(e['id'] as String);
+
+    return GestureDetector(
+      onTap: () => _showEventDetail(e),
+      child: Container(
+        width: 240,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFFFF),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: registered ? const Color(0xFF1A1A1A) : const Color(0xFFE8E8E8),
+            width: registered ? 1.5 : 1,
+          ),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0A000000),
+              blurRadius: 14,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Category badge
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: catColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    category.isEmpty ? 'Event' : category,
+                    style: TextStyle(
+                      color: catColor,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                if (registered)
+                  const Icon(Icons.check_circle, color: Color(0xFF1A1A1A), size: 16),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // Title
+            Text(
+              e['title'] as String? ?? '',
+              style: const TextStyle(
+                color: Color(0xFF1A1A1A),
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+                height: 1.3,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 8),
+
+            // Date & time
+            if (start != null)
+              Row(
+                children: [
+                  const Icon(Icons.schedule_outlined,
+                      color: Color(0xFF6B6B6B), size: 12),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      '${_formatDate(start)}${end != null ? ', ${_formatTime(start)}–${_formatTime(end)}' : ''}',
+                      style: const TextStyle(
+                        color: Color(0xFF6B6B6B),
+                        fontSize: 11,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            const SizedBox(height: 4),
+
+            // Location
+            if (location.isNotEmpty)
+              Row(
+                children: [
+                  const Icon(Icons.location_on_outlined,
+                      color: Color(0xFF6B6B6B), size: 12),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      location,
+                      style: const TextStyle(
+                        color: Color(0xFF6B6B6B),
+                        fontSize: 11,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+
+            const Spacer(),
+
+            // Organizer + register button
+            Row(
+              children: [
+                if (organizer.isNotEmpty)
+                  Expanded(
+                    child: Text(
+                      'By $organizer',
+                      style: const TextStyle(
+                        color: Color(0xFF9E9E9E),
+                        fontSize: 10,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                GestureDetector(
+                  onTap: () => _toggleRegistration(e),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: registered
+                          ? const Color(0xFFF0F0F0)
+                          : const Color(0xFF1A1A1A),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      registered ? 'Registered' : 'Register',
+                      style: TextStyle(
+                        color: registered
+                            ? const Color(0xFF1A1A1A)
+                            : Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Full event card (list) ────────────────────────────
+
+  Widget _eventCard(Map<String, dynamic> e) {
+    final registered = _registeredIds.contains(e['id'] as String);
+    final category = (e['category'] as String? ?? '');
+    final catColor = _categoryColor(category);
+    final start = e['start'] as DateTime?;
+    final end = e['end'] as DateTime?;
+    final location = _locationLabel(e);
+    final organizer = _organizerName(e);
+    final description = (e['description'] as String? ?? '');
+    final capacity = e['expectedAttendees'] as int? ?? 0;
+
+    return GestureDetector(
+      onTap: () => _showEventDetail(e),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFFFF),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: registered
+                ? const Color(0xFF1A1A1A)
+                : const Color(0xFFE8E8E8),
+            width: registered ? 1.5 : 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Top row: category badge + registered tick
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: catColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    category.isEmpty ? 'Event' : category,
+                    style: TextStyle(
+                      color: catColor,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                if (registered)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A1A1A),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text(
+                      'Registered',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // ── Title
+            Text(
+              e['title'] as String? ?? '',
+              style: const TextStyle(
+                color: Color(0xFF1A1A1A),
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+              ),
+            ),
+
+            // ── Description
+            if (description.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                description,
+                style: const TextStyle(
+                  color: Color(0xFF6B6B6B),
+                  fontSize: 12,
+                  height: 1.4,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+            const SizedBox(height: 10),
+
+            // ── Meta row
+            Wrap(
+              spacing: 12,
+              runSpacing: 6,
+              children: [
+                if (start != null)
+                  _metaChip(
+                    icon: Icons.schedule_outlined,
+                    text: '${_formatDate(start)}'
+                        '${end != null ? '  ${_formatTime(start)}–${_formatTime(end)}' : ''}',
+                  ),
+                if (location.isNotEmpty)
+                  _metaChip(
+                    icon: Icons.location_on_outlined,
+                    text: location,
+                  ),
+                if (organizer.isNotEmpty)
+                  _metaChip(
+                    icon: Icons.person_outline,
+                    text: organizer,
+                  ),
+                if (capacity > 0)
+                  _metaChip(
+                    icon: Icons.people_outline,
+                    text: '$capacity expected',
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // ── Register button
+            SizedBox(
+              width: double.infinity,
+              height: 40,
+              child: ElevatedButton(
+                onPressed: () => _toggleRegistration(e),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: registered
+                      ? const Color(0xFFF5F5F5)
+                      : const Color(0xFF1A1A1A),
+                  foregroundColor: registered
+                      ? const Color(0xFF1A1A1A)
+                      : Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    side: registered
+                        ? const BorderSide(color: Color(0xFFE0E0E0))
+                        : BorderSide.none,
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                child: Text(registered ? 'Unregister' : 'Register for this event'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _metaChip({required IconData icon, required String text}) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: const Color(0xFF6B6B6B), size: 12),
+        const SizedBox(width: 4),
+        Text(
+          text,
+          style: const TextStyle(color: Color(0xFF6B6B6B), fontSize: 12),
+        ),
+      ],
+    );
+  }
+
+  // ── My Schedule tile ──────────────────────────────────
+
+  Widget _myScheduleTile(Map<String, dynamic> e) {
+    final start = e['start'] as DateTime?;
+    final end = e['end'] as DateTime?;
+    final location = _locationLabel(e);
+    final category = (e['category'] as String? ?? '');
+    final catColor = _categoryColor(category);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFFFF),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE8E8E8)),
+      ),
+      child: Row(
+        children: [
+          // date block
+          if (start != null)
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '${start.day}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  Text(
+                    _formatDate(start).split(' ')[1],
+                    style: const TextStyle(
+                      color: Color(0xFFB0B0B0),
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.event, color: Colors.white, size: 20),
+            ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
+                  e['title'] as String? ?? '',
                   style: const TextStyle(
                     color: Color(0xFF1A1A1A),
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: const TextStyle(color: Color(0xFF6B6B6B), fontSize: 12),
-                ),
+                const SizedBox(height: 3),
+                if (start != null)
+                  Text(
+                    '${_formatTime(start)}${end != null ? ' – ${_formatTime(end)}' : ''}',
+                    style: const TextStyle(
+                        color: Color(0xFF6B6B6B), fontSize: 12),
+                  ),
+                if (location.isNotEmpty)
+                  Text(
+                    location,
+                    style: const TextStyle(
+                        color: Color(0xFF6B6B6B), fontSize: 12),
+                    overflow: TextOverflow.ellipsis,
+                  ),
               ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: catColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              category.isEmpty ? 'Event' : category,
+              style: TextStyle(
+                  color: catColor,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -609,11 +1343,184 @@ class _AttendeeDashboardState extends State<AttendeeDashboard> {
     );
   }
 
-  Widget _forVenueOwners() {
+  // ── Event detail bottom sheet ─────────────────────────
+
+  void _showEventDetail(Map<String, dynamic> e) {
+    final category = (e['category'] as String? ?? '');
+    final catColor = _categoryColor(category);
+    final start = e['start'] as DateTime?;
+    final end = e['end'] as DateTime?;
+    final location = _locationLabel(e);
+    final organizer = _organizerName(e);
+    final description = (e['description'] as String? ?? '');
+    final capacity = e['expectedAttendees'] as int? ?? 0;
+    final registered = _registeredIds.contains(e['id'] as String);
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFFFFFFFF),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setS) {
+          final isReg = _registeredIds.contains(e['id'] as String);
+          return DraggableScrollableSheet(
+            initialChildSize: 0.7,
+            minChildSize: 0.5,
+            maxChildSize: 0.95,
+            expand: false,
+            builder: (_, ctrl) => SingleChildScrollView(
+              controller: ctrl,
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 5,
+                      margin: const EdgeInsets.only(bottom: 18),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE8E8E8),
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                    ),
+                  ),
+
+                  // Category badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: catColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      category.isEmpty ? 'Event' : category,
+                      style: TextStyle(
+                          color: catColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Title
+                  Text(
+                    e['title'] as String? ?? '',
+                    style: const TextStyle(
+                      color: Color(0xFF1A1A1A),
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      height: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Detail rows
+                  if (start != null)
+                    _detailRow(
+                      Icons.schedule_outlined,
+                      '${_formatDate(start)}'
+                          '${end != null ? ', ${_formatTime(start)} – ${_formatTime(end)}' : ''}',
+                    ),
+                  if (location.isNotEmpty)
+                    _detailRow(Icons.location_on_outlined, location),
+                  if (organizer.isNotEmpty)
+                    _detailRow(Icons.person_outline, 'Organised by $organizer'),
+                  if (capacity > 0)
+                    _detailRow(Icons.people_outline, '$capacity expected attendees'),
+                  const SizedBox(height: 16),
+
+                  // Description
+                  if (description.isNotEmpty) ...[
+                    const Text(
+                      'About this event',
+                      style: TextStyle(
+                        color: Color(0xFF1A1A1A),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      description,
+                      style: const TextStyle(
+                        color: Color(0xFF4A4A4A),
+                        height: 1.6,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+
+                  // Register button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _toggleRegistration(e);
+                        setS(() {});
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isReg
+                            ? const Color(0xFFF5F5F5)
+                            : const Color(0xFF1A1A1A),
+                        foregroundColor:
+                            isReg ? const Color(0xFF1A1A1A) : Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: isReg
+                              ? const BorderSide(color: Color(0xFFE0E0E0))
+                              : BorderSide.none,
+                        ),
+                      ),
+                      child: Text(
+                        isReg ? 'Unregister from this event' : 'Register for this event',
+                        style: const TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _detailRow(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: const Color(0xFF6B6B6B), size: 16),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(color: Color(0xFF4A4A4A), fontSize: 13),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Venue owner promo banner ──────────────────────────
+
+  Widget _venueOwnerBanner() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF2F2F2),
+        color: const Color(0xFFF5F5F5),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE8E8E8)),
       ),
@@ -624,22 +1531,22 @@ class _AttendeeDashboardState extends State<AttendeeDashboard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'For Venue Owners',
+                  'Own a venue?',
                   style: TextStyle(
                     color: Color(0xFF1A1A1A),
                     fontWeight: FontWeight.w800,
-                    fontSize: 16,
+                    fontSize: 15,
                   ),
                 ),
-                SizedBox(height: 6),
+                SizedBox(height: 4),
                 Text(
-                  'List your space, manage rooms and availability, and get booked by organizers.',
-                  style: TextStyle(color: Color(0xFF6B6B6B)),
+                  'List your space and get booked by organizers.',
+                  style: TextStyle(color: Color(0xFF6B6B6B), fontSize: 12),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           OutlinedButton(
             onPressed: () async {
               if (!_auth.isLoggedIn) {
@@ -652,175 +1559,21 @@ class _AttendeeDashboardState extends State<AttendeeDashboard> {
               }
               _goToMyDashboard();
             },
-            child: const Text('List Your Space'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Widgets ──────────────────────────────────
-
-  Widget _statCard(
-      String label, String value, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFFFF),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: color, size: 26),
-          const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(value,
-                  style: TextStyle(
-                      color: color,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800)),
-              Text(label,
-                  style: const TextStyle(
-                      color: Color(0xFF6B6B6B), fontSize: 11)),
-            ],
-          )
-        ],
-      ),
-    );
-  }
-
-  Widget _myEventTile(Map<String, dynamic> e) {
-    final date = e['date'] as DateTime?;
-    final dateStr = date != null
-        ? '${date.day}/${date.month}/${date.year}'
-        : null;
-    final location = (e['location'] as String?) ?? '';
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF2F2F2),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE8E8E8)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.check_circle,
-              color: Color(0xFF2D2D2D), size: 18),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(e['title'] as String,
-                    style: const TextStyle(
-                        color: Color(0xFF1A1A1A),
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14)),
-                if (dateStr != null || location.isNotEmpty)
-                  Text(
-                    [if (dateStr != null) dateStr, if (location.isNotEmpty) location]
-                        .join(' · '),
-                    style: const TextStyle(
-                        color: Color(0xFF6B6B6B), fontSize: 12),
-                  ),
-              ],
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF1A1A1A),
+              side: const BorderSide(color: Color(0xFF1A1A1A)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
+            child: const Text('List Space'),
           ),
         ],
       ),
     );
   }
 
-  Widget _eventCard(Map<String, dynamic> e) {
-    final registered = _registeredIds.contains(e['id'] as String);
-    final date = e['date'] as DateTime?;
-    final dateStr = date != null
-        ? '${date.day}/${date.month}/${date.year}'
-        : null;
-    final location = (e['location'] as String?) ?? '';
-    final organizer = (e['organizer'] as String?) ?? '';
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFFFF),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: registered
-              ? const Color(0xFF2D2D2D)
-              : const Color(0xFFE8E8E8),
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(e['title'] as String,
-                    style: const TextStyle(
-                        color: Color(0xFF1A1A1A),
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15)),
-                const SizedBox(height: 4),
-                if (dateStr != null)
-                  Row(children: [
-                    const Icon(Icons.calendar_today_outlined,
-                        color: Color(0xFF6B6B6B), size: 13),
-                    const SizedBox(width: 4),
-                    Text(dateStr,
-                        style: const TextStyle(
-                            color: Color(0xFF6B6B6B), fontSize: 12)),
-                  ]),
-                if (location.isNotEmpty)
-                  Row(children: [
-                    const Icon(Icons.location_on_outlined,
-                        color: Color(0xFF2D2D2D), size: 13),
-                    const SizedBox(width: 4),
-                    Text(location,
-                        style: const TextStyle(
-                            color: Color(0xFF6B6B6B), fontSize: 12)),
-                  ]),
-                if (organizer.isNotEmpty)
-                  Row(children: [
-                    const Icon(Icons.person_outline,
-                        color: Color(0xFF6B6B6B), size: 13),
-                    const SizedBox(width: 4),
-                    Text('By $organizer',
-                        style: const TextStyle(
-                            color: Color(0xFF6B6B6B), fontSize: 12)),
-                  ]),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          ElevatedButton(
-            onPressed: () => _toggleRegistration(e),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: registered
-                  ? const Color(0xFFF0F0F0)
-                  : const Color(0xFF2D2D2D),
-              foregroundColor:
-                  registered ? const Color(0xFF1A1A1A) : Colors.white,
-              side: registered
-                  ? const BorderSide(color: Color(0xFFE8E8E8))
-                  : BorderSide.none,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              textStyle: const TextStyle(fontSize: 12),
-            ),
-            child: Text(registered ? 'Unregister' : 'Register'),
-          ),
-        ],
-      ),
-    );
-  }
+  // ── Empty state ───────────────────────────────────────
 
   Widget _emptyState(String msg) {
     return Center(
@@ -828,14 +1581,75 @@ class _AttendeeDashboardState extends State<AttendeeDashboard> {
         padding: const EdgeInsets.symmetric(vertical: 40),
         child: Column(
           children: [
-            const Icon(Icons.event_note_outlined,
-                color: Color(0xFF9E9E9E), size: 60),
-            const SizedBox(height: 16),
-            Text(msg,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                    color: Color(0xFF6B6B6B), fontSize: 14, height: 1.6)),
+            const Icon(Icons.event_busy_outlined,
+                color: Color(0xFFCCCCCC), size: 56),
+            const SizedBox(height: 14),
+            Text(
+              msg,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Color(0xFF9E9E9E),
+                fontSize: 14,
+                height: 1.6,
+              ),
+            ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Reusable filter dropdown chip ─────────────────────────────────────────────
+class _FilterDropdown<T> extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final T value;
+  final List<DropdownMenuItem<T>> items;
+  final ValueChanged<T?> onChanged;
+
+  const _FilterDropdown({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.items,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 36,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFFFF),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE0E0E0)),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<T>(
+          value: value,
+          icon: const Icon(Icons.expand_more, size: 16, color: Color(0xFF6B6B6B)),
+          isDense: true,
+          style: const TextStyle(
+            color: Color(0xFF1A1A1A),
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
+          items: items,
+          onChanged: onChanged,
+          hint: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 14, color: const Color(0xFF6B6B6B)),
+              const SizedBox(width: 4),
+              Text(label,
+                  style: const TextStyle(
+                    color: Color(0xFF6B6B6B),
+                    fontSize: 12,
+                  )),
+            ],
+          ),
         ),
       ),
     );
