@@ -228,10 +228,19 @@ class AuthService {
     }
     if (title.trim().isEmpty) return 'Event title is required.';
     if (!end.isAfter(start)) return 'Event end must be after start.';
-    if (start.isBefore(DateTime.now())) return 'Cannot create events in the past.';
     if (expectedAttendees <= 0) return 'Expected attendees must be greater than zero.';
 
     if (eventId == null) {
+      if (start.isBefore(DateTime.now())) {
+        return 'Cannot create events in the past.';
+      }
+      final overlapping = _events.where((e) {
+        if (e['organizerId'] != currentUser!.id) return false;
+        return _isOverlap(start, end, e['start'] as DateTime, e['end'] as DateTime);
+      }).toList();
+      if (overlapping.isNotEmpty) {
+        return 'This event overlaps with "${overlapping.first['title']}". Choose a different time or adjust the other event first.';
+      }
       _events.add({
         'id': 'evt_${DateTime.now().microsecondsSinceEpoch}',
         'organizerId': currentUser!.id,

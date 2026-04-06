@@ -14,6 +14,7 @@ import 'chat_service.dart';
 import 'payment_service.dart';
 import 'notification_service.dart';
 import 'document_service.dart';
+import 'registration_service.dart';
 
 class SeedService {
   static final SeedService _instance = SeedService._internal();
@@ -663,6 +664,41 @@ class SeedService {
       DocumentModel(id: did(), ownerId: owner3.id, name: 'Temporary Events Notice – Rooftop', type: DocumentType.permit, uploadedAt: now.subtract(const Duration(days: 100)), notes: 'TEN for rooftop events, maximum capacity 80 persons.'),
       DocumentModel(id: did(), ownerId: owner3.id, name: 'Accessibility Compliance Certificate', type: DocumentType.certificate, uploadedAt: now.subtract(const Duration(days: 80)), notes: 'All public spaces meet BS 8300 accessibility standards.'),
       DocumentModel(id: did(), ownerId: owner3.id, name: 'Arts Council Accreditation', type: DocumentType.certificate, uploadedAt: now.subtract(const Duration(days: 180)), notes: 'Accredited Creative Space Partner by Arts Council England.'),
+    ]);
+
+    // ─────────────────────────────────────────
+    // 11. ATTENDEE REGISTRATIONS
+    // ─────────────────────────────────────────
+
+    final reg = RegistrationService();
+    int regCounter = 0;
+    String rid() { regCounter++; return 'reg_s${regCounter.toString().padLeft(3, '0')}'; }
+
+    reg.seedRegistrations([
+      // Laura (att1) – tech & finance
+      {'id': rid(), 'eventId': 'evt_001', 'attendeeId': att1.id, 'attendeeName': att1.fullName, 'attendeeEmail': att1.email, 'registeredAt': now.subtract(const Duration(days: 28)), 'attended': false, 'notes': ''},
+      {'id': rid(), 'eventId': 'evt_009', 'attendeeId': att1.id, 'attendeeName': att1.fullName, 'attendeeEmail': att1.email, 'registeredAt': now.subtract(const Duration(days: 20)), 'attended': false, 'notes': ''},
+      {'id': rid(), 'eventId': 'evt_002', 'attendeeId': att1.id, 'attendeeName': att1.fullName, 'attendeeEmail': att1.email, 'registeredAt': now.subtract(const Duration(days: 12)), 'attended': false, 'notes': 'Interested in enterprise AI tools'},
+      // Past event attended
+      {'id': rid(), 'eventId': 'evt_003', 'attendeeId': att1.id, 'attendeeName': att1.fullName, 'attendeeEmail': att1.email, 'registeredAt': now.subtract(const Duration(days: 60)), 'attended': true, 'notes': 'Excellent session'},
+
+      // Nathan (att2) – arts & culture
+      {'id': rid(), 'eventId': 'evt_005', 'attendeeId': att2.id, 'attendeeName': att2.fullName, 'attendeeEmail': att2.email, 'registeredAt': now.subtract(const Duration(days: 25)), 'attended': false, 'notes': ''},
+      {'id': rid(), 'eventId': 'evt_006', 'attendeeId': att2.id, 'attendeeName': att2.fullName, 'attendeeEmail': att2.email, 'registeredAt': now.subtract(const Duration(days: 15)), 'attended': false, 'notes': ''},
+      {'id': rid(), 'eventId': 'evt_001', 'attendeeId': att2.id, 'attendeeName': att2.fullName, 'attendeeEmail': att2.email, 'registeredAt': now.subtract(const Duration(days: 22)), 'attended': false, 'notes': ''},
+      // Past event attended
+      {'id': rid(), 'eventId': 'evt_007', 'attendeeId': att2.id, 'attendeeName': att2.fullName, 'attendeeEmail': att2.email, 'registeredAt': now.subtract(const Duration(days: 30)), 'attended': true, 'notes': 'Really enjoyed the workshop'},
+
+      // Chloe (att3) – business & networking
+      {'id': rid(), 'eventId': 'evt_001', 'attendeeId': att3.id, 'attendeeName': att3.fullName, 'attendeeEmail': att3.email, 'registeredAt': now.subtract(const Duration(days: 30)), 'attended': false, 'notes': ''},
+      {'id': rid(), 'eventId': 'evt_006', 'attendeeId': att3.id, 'attendeeName': att3.fullName, 'attendeeEmail': att3.email, 'registeredAt': now.subtract(const Duration(days: 18)), 'attended': false, 'notes': 'Interested in distribution'},
+      {'id': rid(), 'eventId': 'evt_005', 'attendeeId': att3.id, 'attendeeName': att3.fullName, 'attendeeEmail': att3.email, 'registeredAt': now.subtract(const Duration(days: 10)), 'attended': false, 'notes': ''},
+
+      // Ravi (att4) – entrepreneurship & finance
+      {'id': rid(), 'eventId': 'evt_001', 'attendeeId': att4.id, 'attendeeName': att4.fullName, 'attendeeEmail': att4.email, 'registeredAt': now.subtract(const Duration(days: 35)), 'attended': false, 'notes': ''},
+      {'id': rid(), 'eventId': 'evt_009', 'attendeeId': att4.id, 'attendeeName': att4.fullName, 'attendeeEmail': att4.email, 'registeredAt': now.subtract(const Duration(days: 22)), 'attended': false, 'notes': ''},
+      {'id': rid(), 'eventId': 'evt_010', 'attendeeId': att4.id, 'attendeeName': att4.fullName, 'attendeeEmail': att4.email, 'registeredAt': now.subtract(const Duration(days: 14)), 'attended': false, 'notes': 'Pitching our edtech startup'},
+      {'id': rid(), 'eventId': 'evt_002', 'attendeeId': att4.id, 'attendeeName': att4.fullName, 'attendeeEmail': att4.email, 'registeredAt': now.subtract(const Duration(days: 8)), 'attended': false, 'notes': ''},
     ]);
   }
 }

@@ -10,7 +10,7 @@ Multi-role event and venue management system built with Flutter (web). No extern
 
 ## Roles
 - **Super Admin** (`admin@eventflow.com` / `admin123`) — system-wide oversight
-- **Organizer** — create events, book rooms
+- **Organizer** — create events, book venues, view attendees, analytics
 - **Venue Owner** (role: `staff`) — manage buildings, rooms, availability, pricing, map locations
 - **Attendee** — browse and register for events
 
@@ -57,6 +57,7 @@ Multi-role event and venue management system built with Flutter (web). No extern
 - `lib/services/payment_service.dart` — payment records per booking (pending/paid/refunded)
 - `lib/services/notification_service.dart` — venue owner notifications (newBooking, cancellation, reminder, bookingModified)
 - `lib/services/document_service.dart` — venue owner documents (license, permit, certificate)
+- `lib/services/registration_service.dart` — attendee event registrations (register, unregister, isRegistered, markAttended, countForEvent, seedRegistrations)
 
 ### Seeded Test Accounts (password: `password123`)
 - **Venue Owners**: `margaret@thorntonvenues.co.uk`, `james@hollowayhalls.com`, `priya@nairspaces.com`
@@ -73,6 +74,7 @@ Multi-role event and venue management system built with Flutter (web). No extern
 - Chat threads for 6 bookings with 3–5 messages each (35 messages total)
 - 5–7 notifications per venue owner covering all NotificationType variants
 - 4–5 documents per venue owner covering all DocumentType variants
+- 16 attendee registrations across 4 attendees (Laura, Nathan, Chloe, Ravi) for 7 events; some marked attended for past events
 
 ## Key Dependencies
 - `flutter_map: ^7.0.2` — OpenStreetMap rendering (no API key required)

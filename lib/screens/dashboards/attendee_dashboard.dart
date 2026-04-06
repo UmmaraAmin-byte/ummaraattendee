@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
+import '../../services/registration_service.dart';
 import '../../services/notification_service.dart';
 import '../../models/notification_model.dart';
 import '../profile_screen.dart';
@@ -53,10 +54,18 @@ class AttendeeDashboard extends StatefulWidget {
 class _AttendeeDashboardState extends State<AttendeeDashboard>
     with SingleTickerProviderStateMixin {
   final _auth = AuthService();
+  final _reg = RegistrationService();
   final _notif = NotificationService();
 
-  final Set<String> _registeredIds = {};
   Map<String, dynamic>? _pendingRegistrationEvent;
+
+  Set<String> get _registeredIds {
+    if (!_auth.isLoggedIn) return {};
+    return _reg
+        .registrationsForAttendee(_auth.currentUser!.id)
+        .map((r) => r['eventId'] as String)
+        .toSet();
+  }
 
   // Events tab filters
   final _searchCtrl = TextEditingController();
@@ -210,8 +219,10 @@ class _AttendeeDashboardState extends State<AttendeeDashboard>
 
   void _doRegister(Map<String, dynamic> event) {
     final id = event['id'] as String;
-    if (_registeredIds.contains(id)) {
-      setState(() => _registeredIds.remove(id));
+    final user = _auth.currentUser!;
+    if (_reg.isRegistered(eventId: id, attendeeId: user.id)) {
+      _reg.unregister(eventId: id, attendeeId: user.id);
+      setState(() {});
       _showSnack('Unregistered from "${event['title']}".');
       return;
     }
@@ -220,7 +231,13 @@ class _AttendeeDashboardState extends State<AttendeeDashboard>
       _showConflictDialog(event, conflict);
       return;
     }
-    setState(() => _registeredIds.add(id));
+    _reg.register(
+      eventId: id,
+      attendeeId: user.id,
+      attendeeName: user.fullName,
+      attendeeEmail: user.email,
+    );
+    setState(() {});
     _showSnack('Registered for "${event['title']}"!');
 
     // Attendee notification
