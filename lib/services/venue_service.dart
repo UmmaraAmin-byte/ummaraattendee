@@ -14,6 +14,8 @@ class VenueService {
   final Map<String, PricingModel> _pricing = {};
   final Map<String, AvailabilityModel> _availability = {};
 
+  List<BuildingModel> get allBuildings => List.unmodifiable(_buildings);
+
   List<BuildingModel> buildingsForOwner(String ownerId) =>
       _buildings.where((b) => b.ownerId == ownerId).toList();
 

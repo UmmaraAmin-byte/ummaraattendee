@@ -1,4 +1,11 @@
-enum NotificationType { newBooking, cancellation, reminder, bookingModified }
+enum NotificationType {
+  newBooking,
+  cancellation,
+  reminder,
+  bookingModified,
+  eventRegistered,
+  newEventInCategory,
+}
 
 class NotificationModel {
   final String id;
