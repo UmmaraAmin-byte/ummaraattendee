@@ -1,0 +1,44 @@
+“Enhance the Event Management System by adding a comprehensive organizer panel. The organizer should be able to create and manage events, book venues, view attendee registrations, and see analytics, all while keeping the minimal, professional, student-friendly theme consistent. Avoid generic marketing phrases; the content and interface should feel natural, readable, and approachable.
+
+Organizer Features:
+
+Organizer Dashboard:
+List of all events they’ve created
+Event cards showing: title, venue, date/time, attendee count, status (upcoming/ongoing/completed)
+Visual alerts if two events overlap in timing or venue
+Add / Manage Event:
+Form fields:
+Event title
+Event description (long, student-friendly text)
+Event date & time
+Venue selection (only free venues allowed; prevent double-booking)
+Upload images/media
+Validation: organizer cannot book overlapping events
+Manage Venues:
+List of available venues
+Venue availability calendar
+Automatic conflict detection for overlapping events
+Attendee Management:
+For each event, view registered attendees (name, email, registration date)
+Optional: mark attendance, add notes
+Attendees see event details, organizer info, and confirmation
+Analytics & Charts:
+Show stats for each event:
+Number of attendees over time
+Event popularity comparison (bar or line charts)
+Venue utilization
+Simple, clean visualizations that match the theme
+Style & UX Guidelines:
+Maintain minimal, professional, and student-friendly UI
+Long-form descriptions and authentic copy where needed
+Use subtle, readable buttons: ‘Add Event’, ‘Book Venue’, ‘View Attendees’, ‘Analytics’
+Clear alerts for conflicts or double-booking attempts
+Charts should be easy to read and visually consistent with the rest of the system
+
+Goals:
+
+Enable organizers to efficiently manage events and venues
+Ensure attendees can clearly see registered events
+Provide visual insights through charts and stats
+Prevent organizers from scheduling overlapping events at the same venue or time
+Keep the system cohesive, approachable, and professional, with a student-friendly tone.”
