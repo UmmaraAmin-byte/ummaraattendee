@@ -3,6 +3,11 @@
 ## Overview
 Multi-role event and venue management system built with Flutter (web). No external database — all state is in-memory via singleton services.
 
+## Running the App
+- Build: `flutter build web --release`
+- Serve: `node serve.js` (serves `build/web/` on port 5000)
+- The workflow "Start application" runs `node serve.js` automatically
+
 ## Roles
 - **Super Admin** (`admin@eventflow.com` / `admin123`) — system-wide oversight
 - **Organizer** — create events, book rooms

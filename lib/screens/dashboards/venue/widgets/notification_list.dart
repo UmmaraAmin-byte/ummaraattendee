@@ -194,6 +194,10 @@ class _NotifCard extends StatelessWidget {
         return Icons.alarm_outlined;
       case NotificationType.bookingModified:
         return Icons.edit_outlined;
+      case NotificationType.eventRegistered:
+        return Icons.event_available_outlined;
+      case NotificationType.newEventInCategory:
+        return Icons.new_releases_outlined;
     }
   }
 
