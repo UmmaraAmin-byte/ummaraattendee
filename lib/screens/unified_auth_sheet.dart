@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
+import '../utils/validators.dart';
 
 enum AuthIntent {
   attendeeRegister,
@@ -44,6 +45,8 @@ class UnifiedAuthSheet extends StatefulWidget {
 class _UnifiedAuthSheetState extends State<UnifiedAuthSheet>
     with SingleTickerProviderStateMixin {
   final _auth = AuthService();
+  final _loginFormKey = GlobalKey<FormState>();
+  final _signupFormKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
@@ -131,6 +134,7 @@ class _UnifiedAuthSheetState extends State<UnifiedAuthSheet>
   }
 
   Future<void> _login() async {
+    if (!(_loginFormKey.currentState?.validate() ?? false)) return;
     setState(() {
       _error = null;
       _loading = true;
@@ -152,14 +156,15 @@ class _UnifiedAuthSheetState extends State<UnifiedAuthSheet>
   }
 
   Future<void> _signup() async {
+    if (!(_signupFormKey.currentState?.validate() ?? false)) return;
     setState(() {
       _error = null;
       _loading = true;
     });
     await Future.delayed(const Duration(milliseconds: 200));
     final err = _auth.register(
-      fullName: _nameCtrl.text,
-      email: _emailCtrl.text,
+      fullName: _nameCtrl.text.trim(),
+      email: _emailCtrl.text.trim(),
       password: _passCtrl.text,
       role: _role,
       interests: const [],
@@ -296,108 +301,125 @@ class _UnifiedAuthSheetState extends State<UnifiedAuthSheet>
   }
 
   Widget _loginView() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        TextField(
-          controller: _emailCtrl,
-          keyboardType: TextInputType.emailAddress,
-          decoration: const InputDecoration(
-            labelText: 'Email',
-            prefixIcon: Icon(Icons.email_outlined, color: Color(0xFF2D2D2D)),
+    return Form(
+      key: _loginFormKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextFormField(
+            controller: _emailCtrl,
+            keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(
+              labelText: 'Email',
+              prefixIcon: Icon(Icons.email_outlined, color: Color(0xFF2D2D2D)),
+            ),
+            validator: EmailValidator.validate,
           ),
-        ),
-        const SizedBox(height: 10),
-        TextField(
-          controller: _passCtrl,
-          obscureText: _obscure,
-          decoration: InputDecoration(
-            labelText: 'Password',
-            prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF2D2D2D)),
-            suffixIcon: IconButton(
-              icon: Icon(
-                _obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                color: const Color(0xFF6B6B6B),
+          const SizedBox(height: 10),
+          TextFormField(
+            controller: _passCtrl,
+            obscureText: _obscure,
+            decoration: InputDecoration(
+              labelText: 'Password',
+              prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF2D2D2D)),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  color: const Color(0xFF6B6B6B),
+                ),
+                onPressed: () => setState(() => _obscure = !_obscure),
               ),
-              onPressed: () => setState(() => _obscure = !_obscure),
+            ),
+            validator: (v) =>
+                (v == null || v.isEmpty) ? 'Password is required.' : null,
+          ),
+          const Spacer(),
+          SizedBox(
+            height: 48,
+            child: ElevatedButton(
+              onPressed: _loading ? null : _login,
+              child: _loading
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text('Continue'),
             ),
           ),
-        ),
-        const Spacer(),
-        SizedBox(
-          height: 48,
-          child: ElevatedButton(
-            onPressed: _loading ? null : _login,
-            child: _loading
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Text('Continue'),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   Widget _signupView() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        TextField(
-          controller: _nameCtrl,
-          decoration: const InputDecoration(
-            labelText: 'Full name',
-            prefixIcon: Icon(Icons.person_outline, color: Color(0xFF2D2D2D)),
-          ),
-        ),
-        const SizedBox(height: 10),
-        TextField(
-          controller: _emailCtrl,
-          keyboardType: TextInputType.emailAddress,
-          decoration: const InputDecoration(
-            labelText: 'Email',
-            prefixIcon: Icon(Icons.email_outlined, color: Color(0xFF2D2D2D)),
-          ),
-        ),
-        const SizedBox(height: 10),
-        TextField(
-          controller: _passCtrl,
-          obscureText: _obscure,
-          decoration: InputDecoration(
-            labelText: 'Password',
-            prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF2D2D2D)),
-            suffixIcon: IconButton(
-              icon: Icon(
-                _obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                color: const Color(0xFF6B6B6B),
+    return Form(
+      key: _signupFormKey,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextFormField(
+              controller: _nameCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Full name',
+                prefixIcon: Icon(Icons.person_outline, color: Color(0xFF2D2D2D)),
               ),
-              onPressed: () => setState(() => _obscure = !_obscure),
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Full name is required.' : null,
             ),
-          ),
+            const SizedBox(height: 10),
+            TextFormField(
+              controller: _emailCtrl,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(
+                labelText: 'Email',
+                prefixIcon: Icon(Icons.email_outlined, color: Color(0xFF2D2D2D)),
+              ),
+              validator: EmailValidator.validate,
+            ),
+            const SizedBox(height: 10),
+            TextFormField(
+              controller: _passCtrl,
+              obscureText: _obscure,
+              decoration: InputDecoration(
+                labelText: 'Password',
+                prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF2D2D2D)),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                    color: const Color(0xFF6B6B6B),
+                  ),
+                  onPressed: () => setState(() => _obscure = !_obscure),
+                ),
+                helperText: 'Min 8 chars with uppercase, lowercase, number & special character',
+                helperMaxLines: 2,
+              ),
+              validator: PasswordValidator.validate,
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 48,
+              child: ElevatedButton(
+                onPressed: _loading ? null : _signup,
+                child: _loading
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Create account'),
+              ),
+            ),
+          ],
         ),
-        const Spacer(),
-        SizedBox(
-          height: 48,
-          child: ElevatedButton(
-            onPressed: _loading ? null : _signup,
-            child: _loading
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Text('Create account'),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

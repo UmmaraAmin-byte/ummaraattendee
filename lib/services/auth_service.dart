@@ -5,6 +5,7 @@
 // ─────────────────────────────────────────────
 
 import '../models/user_model.dart';
+import '../utils/validators.dart';
 
 class AuthService {
   // Singleton
@@ -433,7 +434,7 @@ class AuthService {
       id: 'sa_001',
       fullName: 'Super Admin',
       email: 'admin@eventflow.com',
-      password: 'admin123',
+      password: 'Admin@1234',
       role: UserRole.superAdmin,
       bio: 'System administrator',
     ));
@@ -507,11 +508,10 @@ class AuthService {
     _seedSuperAdmin();
 
     if (fullName.trim().isEmpty) return 'Full name is required.';
-    if (email.trim().isEmpty) return 'Email is required.';
-    if (!email.contains('@') || !email.contains('.')) {
-      return 'Please enter a valid email address.';
-    }
-    if (password.length < 6) return 'Password must be at least 6 characters.';
+    final emailError = EmailValidator.validate(email);
+    if (emailError != null) return emailError;
+    final passwordError = PasswordValidator.validate(password);
+    if (passwordError != null) return passwordError;
 
     // Check duplicate email
     final exists = _users.any(
@@ -582,8 +582,8 @@ class AuthService {
   }) {
     if (_currentUser == null) return 'Not logged in.';
     if (fullName.trim().isEmpty) return 'Full name is required.';
-    if (email.trim().isEmpty) return 'Email is required.';
-    if (!email.contains('@')) return 'Please enter a valid email.';
+    final emailError = EmailValidator.validate(email);
+    if (emailError != null) return emailError;
 
     // Check email uniqueness (excluding self)
     final emailTaken = _users.any(
@@ -617,7 +617,11 @@ class AuthService {
     if (_currentUser!.password != currentPass) {
       return 'Current password is incorrect.';
     }
-    if (newPass.length < 6) return 'New password must be at least 6 characters.';
+    final passwordError = PasswordValidator.validate(newPass);
+    if (passwordError != null) return passwordError;
+    if (newPass == currentPass) {
+      return 'New password must be different from current password.';
+    }
 
     final index = _users.indexWhere((u) => u.id == _currentUser!.id);
     _users[index] = _currentUser!.copyWith(password: newPass);

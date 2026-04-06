@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../models/user_model.dart';
+import '../utils/validators.dart';
 import 'dashboards/super_admin_dashboard.dart';
 import 'dashboards/organizer_dashboard.dart';
 import 'dashboards/staff_dashboard.dart';
@@ -42,6 +43,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void initState() {
     super.initState();
     _selectedRole = widget.role;
+    _passCtrl.addListener(() => setState(() {}));
   }
 
   void _addInterest() {
@@ -107,6 +109,97 @@ class _RegisterScreenState extends State<RegisterScreen> {
       context,
       MaterialPageRoute(builder: (_) => dashboard),
           (route) => false,
+    );
+  }
+
+  Widget _buildPasswordStrengthIndicator(String password) {
+    if (password.isEmpty) return const SizedBox.shrink();
+    final requirements = PasswordValidator.getRequirements(password);
+    final strength = PasswordValidator.getStrength(password);
+
+    Color strengthColor;
+    String strengthLabel;
+    int filledSegments;
+    switch (strength) {
+      case PasswordStrength.weak:
+        strengthColor = const Color(0xFFE53935);
+        strengthLabel = 'Weak';
+        filledSegments = 1;
+        break;
+      case PasswordStrength.fair:
+        strengthColor = const Color(0xFFFB8C00);
+        strengthLabel = 'Fair';
+        filledSegments = 2;
+        break;
+      case PasswordStrength.strong:
+        strengthColor = const Color(0xFF43A047);
+        strengthLabel = 'Strong';
+        filledSegments = 3;
+        break;
+      case PasswordStrength.veryStrong:
+        strengthColor = const Color(0xFF1B5E20);
+        strengthLabel = 'Very Strong';
+        filledSegments = 4;
+        break;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              ...List.generate(4, (i) {
+                return Expanded(
+                  child: Container(
+                    margin: EdgeInsets.only(right: i < 3 ? 4 : 0),
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: i < filledSegments
+                          ? strengthColor
+                          : const Color(0xFFE8E8E8),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                );
+              }),
+              const SizedBox(width: 8),
+              Text(
+                strengthLabel,
+                style: TextStyle(
+                  color: strengthColor,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ...requirements.map(
+            (req) => Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                children: [
+                  Icon(
+                    req.met ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
+                    size: 14,
+                    color: req.met ? const Color(0xFF43A047) : const Color(0xFF9E9E9E),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    req.label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: req.met ? const Color(0xFF43A047) : const Color(0xFF6B6B6B),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -238,13 +331,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   label: 'Email Address',
                   icon: Icons.email_outlined,
                   keyboardType: TextInputType.emailAddress,
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return 'Email is required';
-                    if (!v.contains('@') || !v.contains('.')) {
-                      return 'Enter a valid email';
-                    }
-                    return null;
-                  },
+                  validator: EmailValidator.validate,
                 ),
                 const SizedBox(height: 14),
                 _buildTextField(
@@ -374,12 +461,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           setState(() => _obscurePass = !_obscurePass),
                     ),
                   ),
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return 'Password is required';
-                    if (v.length < 6) return 'Min. 6 characters';
-                    return null;
-                  },
+                  validator: PasswordValidator.validate,
                 ),
+                _buildPasswordStrengthIndicator(_passCtrl.text),
                 const SizedBox(height: 14),
                 TextFormField(
                   controller: _confirmPassCtrl,
@@ -401,8 +485,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ),
                   validator: (v) {
-                    if (v == null || v.isEmpty) return 'Please confirm password';
-                    if (v != _passCtrl.text) return 'Passwords do not match';
+                    if (v == null || v.isEmpty) return 'Please confirm your password.';
+                    if (v != _passCtrl.text) return 'Passwords do not match.';
                     return null;
                   },
                 ),

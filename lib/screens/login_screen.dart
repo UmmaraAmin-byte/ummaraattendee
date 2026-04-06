@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../models/user_model.dart';
+import '../utils/validators.dart';
 import 'register_screen.dart';
 import 'dashboards/super_admin_dashboard.dart';
 import 'dashboards/organizer_dashboard.dart';
@@ -201,11 +202,7 @@ class _LoginScreenState extends State<LoginScreen>
                                 labelText: 'Email Address',
                                 prefixIcon: Icon(Icons.email_outlined, color: Color(0xFF2D2D2D)),
                               ),
-                              validator: (v) {
-                                if (v == null || v.isEmpty) return 'Email is required';
-                                if (!v.contains('@')) return 'Enter a valid email';
-                                return null;
-                              },
+                              validator: EmailValidator.validate,
                             ),
                             const SizedBox(height: 14),
                             TextFormField(
@@ -270,7 +267,7 @@ class _LoginScreenState extends State<LoginScreen>
                       ),
                     const SizedBox(height: 24),
                     const Text(
-                      'Demo Admin\nEmail: admin@eventflow.com\nPassword: admin123',
+                      'Demo Admin\nEmail: admin@eventflow.com\nPassword: Admin@1234',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Color(0xFF9E9E9E),

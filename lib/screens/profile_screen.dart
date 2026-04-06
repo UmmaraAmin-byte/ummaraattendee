@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../models/user_model.dart';
+import '../utils/validators.dart';
 import 'landing_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -368,11 +369,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                           label: 'Email',
                           icon: Icons.email_outlined,
                           keyboardType: TextInputType.emailAddress,
-                          validator: (v) {
-                            if (v == null || v.isEmpty) return 'Email required';
-                            if (!v.contains('@')) return 'Invalid email';
-                            return null;
-                          },
+                          validator: EmailValidator.validate,
                         ),
                         const SizedBox(height: 14),
                         _buildField(
@@ -510,13 +507,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                           obscure: _obscureNew,
                           toggle: () =>
                               setState(() => _obscureNew = !_obscureNew),
-                          validator: (v) {
-                            if (v == null || v.isEmpty) {
-                              return 'New password is required';
-                            }
-                            if (v.length < 6) return 'Min. 6 characters';
-                            return null;
-                          },
+                          validator: PasswordValidator.validate,
                         ),
                         const SizedBox(height: 14),
                         _buildPasswordField(
@@ -527,10 +518,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                                   () => _obscureConfirm = !_obscureConfirm),
                           validator: (v) {
                             if (v == null || v.isEmpty) {
-                              return 'Please confirm new password';
+                              return 'Please confirm new password.';
                             }
                             if (v != _newPassCtrl.text) {
-                              return 'Passwords do not match';
+                              return 'Passwords do not match.';
                             }
                             return null;
                           },
