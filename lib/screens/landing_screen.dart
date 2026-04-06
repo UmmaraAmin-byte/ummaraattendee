@@ -116,6 +116,7 @@ class _LandingScreenState extends State<LandingScreen>
                 SliverToBoxAdapter(child: _buildHeader()),
                 SliverToBoxAdapter(child: _buildHero()),
                 SliverToBoxAdapter(child: _buildStatsBar()),
+                SliverToBoxAdapter(child: _buildStorySection()),
                 SliverToBoxAdapter(child: _buildFeaturesSection()),
                 SliverToBoxAdapter(child: _buildHowItWorksSection()),
                 SliverToBoxAdapter(child: _buildWhoWeAreSection()),
@@ -272,8 +273,9 @@ class _LandingScreenState extends State<LandingScreen>
             child: const Padding(
               padding: EdgeInsets.symmetric(horizontal: 8),
               child: Text(
-                'Plan, manage, and deliver world-class events at any scale —\n'
-                    'with tools that feel as premium as your experience.',
+                'You\'ve got enough going on the day of your event.\n'
+                    'Let us quietly handle the details — check-ins, bookings, schedules —\n'
+                    'so you can actually be present for the people who showed up.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                     color: _stone, fontSize: 16, height: 1.70, letterSpacing: 0.1),
@@ -292,7 +294,7 @@ class _LandingScreenState extends State<LandingScreen>
                   _fadeRoute(const RegisterScreen(role: UserRole.attendee))),
             ),
             const SizedBox(width: 14),
-            _GhostPillButton(label: '▶  Watch demo', onTap: () {}),
+            _GhostPillButton(label: 'See how it works →', onTap: () {}),
           ]),
         ),
         const SizedBox(height: 60),
@@ -343,27 +345,33 @@ class _LandingScreenState extends State<LandingScreen>
     );
   }
 
-  // ── Features ──────────────────────────────────────────────────────────────
-  Widget _buildFeaturesSection() {
-    final features = [
-      _FData(Icons.event_available_rounded, 'Event Management',
-          'Create, schedule and manage events with drag-and-drop tools. Supports recurring, multi-day, and hybrid formats.',
-          ['Scheduling', 'Templates', 'Recurring']),
-      _FData(Icons.group_rounded, 'Multi-Role System',
-          'Granular permissions for admins, organizers, speakers, sponsors and attendees — all in one place.',
-          ['RBAC', 'Permissions', 'Teams']),
-      _FData(Icons.bar_chart_rounded, 'Real-time Analytics',
-          'Track registrations, check-ins, engagement and revenue with live dashboards and exportable reports.',
-          ['Dashboards', 'Reports', 'Export']),
-      _FData(Icons.qr_code_scanner_rounded, 'Smart Check-in',
-          'QR and NFC-powered check-in handling thousands per minute — even fully offline.',
-          ['QR Code', 'NFC', 'Offline']),
-      _FData(Icons.palette_outlined, 'Custom Branding',
-          'White-label every touchpoint — pages, badges, emails and apps — with your brand identity.',
-          ['White-label', 'Themes', 'Domain']),
-      _FData(Icons.extension_rounded, '300+ Integrations',
-          'One-click connections to Salesforce, HubSpot, Stripe, Zoom, Slack and hundreds more.',
-          ['Salesforce', 'Stripe', 'Zapier']),
+  // ── Story / Problem–Solution ───────────────────────────────────────────────
+  Widget _buildStorySection() {
+    const stories = [
+      (
+        Icons.sentiment_dissatisfied_rounded,
+        'The night before your event',
+        'You\'ve got a spreadsheet with 400 names, a WhatsApp group with 12 staff, and a check-in app you\'ve never actually tested. The anxiety is very real.',
+        'EventFlow gives you one place where everything lives — the names, the roles, the schedule. No midnight scrambling.',
+      ),
+      (
+        Icons.wifi_off_rounded,
+        'The moment the internet drops',
+        'You\'re at the venue. 200 people just walked in. The check-in app needs WiFi. The venue WiFi just went down. This is every organizer\'s nightmare.',
+        'Our check-in works completely offline. Every scan, every badge — processed instantly, synced later. Your guests never know.',
+      ),
+      (
+        Icons.table_chart_rounded,
+        'Six spreadsheets, zero answers',
+        'After your event ends, you\'ve got registration data in one tab, check-in in another, feedback somewhere in your email. You\'re not sure what actually worked.',
+        'One post-event report tells you exactly what resonated, who came back, and what to improve next time. No assembly required.',
+      ),
+      (
+        Icons.branding_watermark_rounded,
+        'Your brand, buried under someone else\'s',
+        'Attendees see "Powered by [Platform Name]" on every email, every badge, every page. You\'ve built something beautiful — but it doesn\'t look like it\'s yours.',
+        'On EventFlow, every touchpoint is yours. Your domain, your colours, your name — everywhere. The way it should be.',
+      ),
     ];
 
     return Padding(
@@ -371,9 +379,67 @@ class _LandingScreenState extends State<LandingScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _SectionLabel(text: 'Features'),
+          const _SectionLabel(text: 'The honest story'),
           const SizedBox(height: 14),
-          const Text('Everything your\nevent deserves.',
+          const Text('Problems we\nknow by heart.',
+              style: TextStyle(
+                color: _nearBlack,
+                fontSize: 36,
+                fontWeight: FontWeight.w900,
+                height: 1.10,
+                letterSpacing: -1.5,
+              )),
+          const SizedBox(height: 10),
+          const Text(
+            'We\'ve been the organizer in the room when things go wrong.\nHere\'s what we built to make sure they don\'t.',
+            style: TextStyle(color: _stone, fontSize: 14, height: 1.70),
+          ),
+          const SizedBox(height: 36),
+          ...stories.map((s) => Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: _StoryCard(
+              icon: s.$1,
+              title: s.$2,
+              problem: s.$3,
+              solution: s.$4,
+            ),
+          )),
+        ],
+      ),
+    );
+  }
+
+  // ── Features ──────────────────────────────────────────────────────────────
+  Widget _buildFeaturesSection() {
+    final features = [
+      _FData(Icons.event_available_rounded, 'Your event, all in one place',
+          'Remember juggling seven tabs just to change a venue? No more. Create, tweak and run everything from a single screen that actually makes sense.',
+          ['Scheduling', 'Templates', 'Recurring']),
+      _FData(Icons.group_rounded, 'Roles for every person on your team',
+          'Your co-host doesn\'t need the same access as your sponsor manager. Give each person exactly what they need — nothing more, nothing less.',
+          ['Roles', 'Permissions', 'Teams']),
+      _FData(Icons.bar_chart_rounded, 'Numbers that tell the real story',
+          'See who checked in, which session drew the crowd, and what\'s selling — all live, on a dashboard that doesn\'t need a manual to read.',
+          ['Live data', 'Reports', 'Export']),
+      _FData(Icons.qr_code_scanner_rounded, 'Check-in that just works',
+          'Long queues used to be a tradition. Now scan a badge in under a second — even with no internet. Your attendees deserve a smooth welcome.',
+          ['QR Code', 'Offline mode', 'Fast']),
+      _FData(Icons.palette_outlined, 'Looks exactly like you',
+          'Your brand, your colours, your font — on every badge, email, and event page. No "Powered by" logo hiding anywhere.',
+          ['White-label', 'Custom domain', 'Themes']),
+      _FData(Icons.extension_rounded, 'Works with what you already use',
+          'Stripe, Zoom, Slack, Google — the tools already on your tab bar. Connect them in one click so nothing falls through the cracks.',
+          ['Stripe', 'Zoom', 'Slack']),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 80, 24, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SectionLabel(text: 'What we do'),
+          const SizedBox(height: 14),
+          const Text('Tools that feel\nhuman to use.',
               style: TextStyle(
                 color: _nearBlack,
                 fontSize: 36,
@@ -394,14 +460,14 @@ class _LandingScreenState extends State<LandingScreen>
   // ── How it works ──────────────────────────────────────────────────────────
   Widget _buildHowItWorksSection() {
     const steps = [
-      ('01', 'Create your event',
-          'Guided builder sets date, format and capacity in under two minutes.'),
-      ('02', 'Invite & manage',
-          'Send branded invites, manage registrations and assign team roles effortlessly.'),
-      ('03', 'Go live',
-          'Seamless check-in, session management and real-time engagement on event day.'),
-      ('04', 'Analyze & grow',
-          'Deep post-event analytics to make the next experience even better.'),
+      ('01', 'Build your event in minutes',
+          'Fill in the details, pick your format, set your capacity. The builder\'s been designed so you\'re never wondering "where is that setting?"'),
+      ('02', 'Invite the people who matter',
+          'Send warm, branded invites. Track who\'s coming. Assign your team their roles. It feels more like organizing a gathering than filing paperwork.'),
+      ('03', 'Enjoy the day you planned for',
+          'Check-in flows smoothly, sessions run on time, and the dashboard shows you exactly what\'s happening — live, no refreshing needed.'),
+      ('04', 'Look back and do it better',
+          'Post-event, see what resonated, what was skipped, and what your next event could be. One honest report instead of six spreadsheets.'),
     ];
 
     return Padding(
@@ -411,7 +477,7 @@ class _LandingScreenState extends State<LandingScreen>
         children: [
           const _SectionLabel(text: 'How it works'),
           const SizedBox(height: 14),
-          const Text('Live in four\nsteps.',
+          const Text('Here\'s how easy\nthis actually is.',
               style: TextStyle(
                 color: _nearBlack,
                 fontSize: 36,
@@ -440,7 +506,7 @@ class _LandingScreenState extends State<LandingScreen>
         children: [
           const _SectionLabel(text: 'Who we are'),
           const SizedBox(height: 14),
-          const Text('Built by event people,\nfor event people.',
+          const Text('We\'ve been the organizer\nin that room.',
               style: TextStyle(
                 color: _nearBlack,
                 fontSize: 36,
@@ -451,9 +517,11 @@ class _LandingScreenState extends State<LandingScreen>
           const SizedBox(height: 22),
           const Text(
             'EventFlow was born at a 3,000-person conference where the check-in app crashed, '
-                'the ticketing platform charged 18%, and analytics lived in six different spreadsheets.\n\n'
-                'We are engineers, event producers, and product designers who have run events on six '
-                'continents. We built the platform we always wished existed — fast, fair-priced, and a genuine joy to use.',
+                'the ticketing platform charged 18%, and the "analytics" were six different spreadsheets '
+                'that nobody agreed on.\n\n'
+                'We\'re engineers and event producers who\'ve run events on six continents. '
+                'We built the thing we always wished someone else had already built — '
+                'fast, honest on pricing, and actually enjoyable to use.',
             style: TextStyle(color: _stone, fontSize: 14, height: 1.80),
           ),
           const SizedBox(height: 36),
@@ -560,12 +628,12 @@ class _LandingScreenState extends State<LandingScreen>
   // ── Testimonials ──────────────────────────────────────────────────────────
   Widget _buildTestimonialsSection() {
     const reviews = [
-      ('Sarah K.', 'Head of Events · TechCorp',
-          'We moved 12 annual conferences to EventFlow in a weekend. The check-in system alone saved three hours per event.'),
+      ('Sara K.', 'Events Lead · TechCorp',
+          '"I used to dread check-in day. Long lines, the app freezing, staff looking at me like I had the answers. Since we switched, check-in is genuinely the calmest part of the whole event."'),
       ('James T.', 'Founder · MeetupLondon',
-          'The analytics are on another level. I finally understand which sessions drive re-registration.'),
+          '"I\'ve tried everything. The analytics here are the first ones I\'ve actually understood without needing someone to explain them. Now I know exactly why people come back — and who doesn\'t."'),
       ('Amara N.', 'Community Lead · DevCircle',
-          'Custom branding used to cost us \$10k a year. On Pro it\'s just included. Mind-blowing value.'),
+          '"We used to pay an agency just to make our event pages look like ours. Now it\'s just... included. That money goes toward speakers instead, which feels much more right."'),
     ];
 
     return Padding(
@@ -573,9 +641,9 @@ class _LandingScreenState extends State<LandingScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _SectionLabel(text: 'Testimonials'),
+          const _SectionLabel(text: 'Real stories'),
           const SizedBox(height: 14),
-          const Text('Loved by thousands\nof event teams.',
+          const Text('From the people\nwho planned it.',
               style: TextStyle(
                 color: _nearBlack,
                 fontSize: 36,
@@ -597,16 +665,16 @@ class _LandingScreenState extends State<LandingScreen>
   // ── FAQ ───────────────────────────────────────────────────────────────────
   Widget _buildFaqSection() {
     const faqs = [
-      ('What is EventFlow?',
-          'EventFlow is an all-in-one event management platform for planning, running, and analyzing in-person, virtual, and hybrid events of any size.'),
-      ('Is there a free plan?',
-          'Yes — our Starter plan is completely free for events up to 100 attendees. No credit card required.'),
-      ('Do you charge per-ticket fees?',
-          'Never on paid plans. Starter has a small 2% processing fee; Pro and Enterprise have zero platform fees.'),
-      ('Can I white-label the platform?',
-          'Pro includes custom colors and domain. Enterprise includes a fully white-labeled mobile app under your brand.'),
-      ('How does offline check-in work?',
-          'The app caches all attendee data locally. Scans happen instantly offline and sync the moment you reconnect.'),
+      ('What exactly is EventFlow?',
+          'It\'s a place where you plan, run, and understand your events — all without switching between a dozen different tools. Whether it\'s 30 people or 30,000, it\'s built to feel calm to use.'),
+      ('Is it really free to start?',
+          'Yes, and no catch. Our Starter plan covers events up to 100 attendees, completely free. No credit card, no trial countdown. Just sign up and build something.'),
+      ('Will I get charged per ticket?',
+          'Not on paid plans. Starter has a small 2% processing fee to keep things running. Pro and Enterprise have zero platform fees — what you earn is yours.'),
+      ('Can it look like my brand?',
+          'On Pro, your events get your colours, your domain, and your logo — no EventFlow branding anywhere. Enterprise includes a fully white-labeled mobile app too.'),
+      ('What happens if the internet drops at the venue?',
+          'Nothing stops. The app caches every attendee locally. Scans work instantly offline and quietly sync the moment connectivity returns. Your guests won\'t notice a thing.'),
     ];
 
     return Padding(
@@ -616,7 +684,7 @@ class _LandingScreenState extends State<LandingScreen>
         children: [
           const _SectionLabel(text: 'FAQ'),
           const SizedBox(height: 14),
-          const Text('Questions,\nanswered.',
+          const Text('Things people\nusually ask us.',
               style: TextStyle(
                 color: _nearBlack,
                 fontSize: 36,
@@ -681,7 +749,7 @@ class _LandingScreenState extends State<LandingScreen>
             ),
             const SizedBox(height: 22),
             const Text(
-              'Ready to run your\nbest event yet?',
+              'Your next event\ndeserves this.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white,
@@ -693,7 +761,7 @@ class _LandingScreenState extends State<LandingScreen>
             ),
             const SizedBox(height: 12),
             Text(
-              'Join 50,000+ event professionals worldwide.',
+              'No learning curve. No surprise fees. Just your event, done well.',
               textAlign: TextAlign.center,
               style: TextStyle(
                   color: Colors.white.withOpacity(0.40), fontSize: 14),
@@ -725,7 +793,7 @@ class _LandingScreenState extends State<LandingScreen>
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 _LogoMark(glowCtrl: _glowCtrl),
                 const SizedBox(height: 10),
-                const Text('Run events beautifully.',
+                const Text('Events that feel like you.',
                     style: TextStyle(color: _stone, fontSize: 12)),
                 const SizedBox(height: 8),
                 const Text('© 2026 EventFlow Inc.',
@@ -830,7 +898,7 @@ class _GlowHeadline extends StatelessWidget {
         end: Alignment.centerRight,
       ).createShader(bounds),
       child: const Text(
-        'Run Events\nBeautifully',
+        'Your Events,\nYour Story',
         textAlign: TextAlign.center,
         style: TextStyle(
           color: Colors.white,
@@ -924,7 +992,7 @@ class _StatusBadge extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           const Text(
-            'Now in public beta · Free to start',
+            'Made with care · No card needed',
             style: TextStyle(
               color: Color(0xFF3A3835),
               fontSize: 12,
@@ -1153,8 +1221,8 @@ class _GhostPillButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(100),
           border: Border.all(color: const Color(0xFFD5D3CE)),
         ),
-        child: const Text('▶  Watch demo',
-            style: TextStyle(
+        child: Text(label,
+            style: const TextStyle(
               color: Color(0xFF9B9891),
               fontWeight: FontWeight.w600,
               fontSize: 14,
@@ -1460,6 +1528,152 @@ class _StepRow extends StatelessWidget {
           ),
         ),
       ]),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  STORY CARD – Problem / Solution narrative block
+// ═══════════════════════════════════════════════════════════════════════════
+class _StoryCard extends StatefulWidget {
+  final IconData icon;
+  final String title, problem, solution;
+  const _StoryCard({
+    required this.icon,
+    required this.title,
+    required this.problem,
+    required this.solution,
+  });
+
+  @override
+  State<_StoryCard> createState() => _StoryCardState();
+}
+
+class _StoryCardState extends State<_StoryCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _hov;
+
+  @override
+  void initState() {
+    super.initState();
+    _hov = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 220));
+  }
+
+  @override
+  void dispose() {
+    _hov.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => _hov.forward(),
+      onTapUp: (_) => _hov.reverse(),
+      onTapCancel: () => _hov.reverse(),
+      child: AnimatedBuilder(
+        animation: _hov,
+        builder: (_, __) {
+          final t = _hov.value;
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Color.lerp(
+                  const Color(0xFFF9F8F6), const Color(0xFF0A0908), t),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: Color.lerp(
+                    const Color(0xFFE5E3DD), Colors.transparent, t)!,
+              ),
+              boxShadow: t > 0.5
+                  ? [
+                const BoxShadow(
+                    color: Color(0x22000000),
+                    blurRadius: 40,
+                    offset: Offset(0, 12))
+              ]
+                  : [],
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Container(
+                  padding: const EdgeInsets.all(11),
+                  decoration: BoxDecoration(
+                    color: Color.lerp(
+                        const Color(0xFFECEAE4),
+                        Colors.white.withOpacity(0.08),
+                        t),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(widget.icon,
+                      color: Color.lerp(
+                          const Color(0xFF3A3835), Colors.white, t),
+                      size: 18),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(widget.title,
+                      style: TextStyle(
+                        color: Color.lerp(
+                            const Color(0xFF151412), Colors.white, t),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.3,
+                        height: 1.30,
+                      )),
+                ),
+              ]),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Color.lerp(
+                      const Color(0xFFEEECE7),
+                      Colors.white.withOpacity(0.05),
+                      t),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(widget.problem,
+                    style: TextStyle(
+                      color: Color.lerp(
+                          const Color(0xFF6B6965), Colors.white60, t),
+                      fontSize: 13,
+                      height: 1.65,
+                      fontStyle: FontStyle.italic,
+                    )),
+              ),
+              const SizedBox(height: 12),
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Container(
+                  margin: const EdgeInsets.only(top: 3),
+                  width: 14, height: 14,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color.lerp(
+                        const Color(0xFF0A0908), Colors.white, t),
+                  ),
+                  child: Icon(Icons.check,
+                      size: 9,
+                      color: Color.lerp(Colors.white, const Color(0xFF0A0908), t)),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(widget.solution,
+                      style: TextStyle(
+                        color: Color.lerp(
+                            const Color(0xFF3A3835), Colors.white70, t),
+                        fontSize: 13,
+                        height: 1.65,
+                        fontWeight: FontWeight.w500,
+                      )),
+                ),
+              ]),
+            ]),
+          );
+        },
+      ),
     );
   }
 }
