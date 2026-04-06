@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../profile_screen.dart';
 import '../unified_auth_sheet.dart';
+import '../landing_screen.dart';
 import '../../models/user_model.dart';
 import 'organizer_dashboard.dart';
 import 'staff_dashboard.dart';
@@ -180,7 +181,11 @@ class _AttendeeDashboardState extends State<AttendeeDashboard> {
             TextButton(
               onPressed: () {
                 _auth.logout();
-                setState(() {});
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LandingScreen()),
+                  (route) => false,
+                );
               },
               child: const Text(
                 'Logout',

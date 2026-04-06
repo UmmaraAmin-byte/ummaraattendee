@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../models/user_model.dart';
-import 'dashboards/attendee_dashboard.dart';
+import 'landing_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -67,7 +67,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         if (!mounted) return;
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => const AttendeeDashboard()),
+          MaterialPageRoute(builder: (_) => const LandingScreen()),
           (r) => false,
         );
       });
@@ -176,8 +176,8 @@ class _ProfileScreenState extends State<ProfileScreen>
               _auth.logout();
               Navigator.pushAndRemoveUntil(
                 context,
-                MaterialPageRoute(builder: (_) => const AttendeeDashboard()),
-                    (route) => false,
+                MaterialPageRoute(builder: (_) => const LandingScreen()),
+                (route) => false,
               );
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2D2D2D)),

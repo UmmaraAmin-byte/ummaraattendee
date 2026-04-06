@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../../models/user_model.dart';
 import '../profile_screen.dart';
-import 'attendee_dashboard.dart';
+import '../landing_screen.dart';
 
 class OrganizerDashboard extends StatefulWidget {
   const OrganizerDashboard({super.key});
@@ -36,7 +36,7 @@ class _OrganizerDashboardState extends State<OrganizerDashboard> {
         if (!mounted) return;
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => const AttendeeDashboard()),
+          MaterialPageRoute(builder: (_) => const LandingScreen()),
           (r) => false,
         );
       });
@@ -368,11 +368,12 @@ class _OrganizerDashboardState extends State<OrganizerDashboard> {
           ),
           IconButton(
             icon: const Icon(Icons.logout_rounded, color: Color(0xFF1A1A1A)),
+            tooltip: 'Logout',
             onPressed: () {
               _auth.logout();
               Navigator.pushAndRemoveUntil(
                 context,
-                MaterialPageRoute(builder: (_) => const AttendeeDashboard()),
+                MaterialPageRoute(builder: (_) => const LandingScreen()),
                 (r) => false,
               );
             },

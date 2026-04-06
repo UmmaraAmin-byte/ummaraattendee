@@ -7,7 +7,7 @@ import '../../models/user_model.dart';
 import '../../models/building_model.dart';
 import '../../models/analytics_model.dart';
 import '../profile_screen.dart';
-import 'attendee_dashboard.dart';
+import '../landing_screen.dart';
 import 'venue/widgets/building_card.dart';
 import 'venue/widgets/map_view.dart';
 import 'venue/widgets/analytics_cards.dart';
@@ -63,7 +63,7 @@ class _StaffDashboardState extends State<StaffDashboard>
         if (!mounted) return;
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => const AttendeeDashboard()),
+          MaterialPageRoute(builder: (_) => const LandingScreen()),
           (r) => false,
         );
       });
@@ -233,7 +233,7 @@ class _StaffDashboardState extends State<StaffDashboard>
                         Navigator.pushAndRemoveUntil(
                           context,
                           MaterialPageRoute(
-                              builder: (_) => const AttendeeDashboard()),
+                              builder: (_) => const LandingScreen()),
                           (r) => false,
                         );
                       },

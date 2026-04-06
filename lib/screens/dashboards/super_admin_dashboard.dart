@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../../models/user_model.dart';
 import '../profile_screen.dart';
-import 'attendee_dashboard.dart';
+import '../landing_screen.dart';
 
 class SuperAdminDashboard extends StatefulWidget {
   const SuperAdminDashboard({super.key});
@@ -30,7 +30,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
         if (!mounted) return;
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => const AttendeeDashboard()),
+          MaterialPageRoute(builder: (_) => const LandingScreen()),
           (r) => false,
         );
       });
@@ -76,12 +76,13 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
           ),
           IconButton(
             icon: const Icon(Icons.logout_rounded, color: Color(0xFF1A1A1A)),
+            tooltip: 'Logout',
             onPressed: () {
               _auth.logout();
               Navigator.pushAndRemoveUntil(
                 context,
-                MaterialPageRoute(builder: (_) => const AttendeeDashboard()),
-                    (route) => false,
+                MaterialPageRoute(builder: (_) => const LandingScreen()),
+                (route) => false,
               );
             },
           ),
