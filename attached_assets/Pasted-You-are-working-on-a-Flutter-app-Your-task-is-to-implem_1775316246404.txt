@@ -1,0 +1,219 @@
+You are working on a Flutter app. Your task is to implement **Map & Location Features** for the **Venue Owner Dashboard ONLY**.
+
+🚨 CRITICAL CONSTRAINTS:
+
+* ONLY modify the Venue Owner dashboard and files directly related to it
+* DO NOT change OrganizerDashboard, AttendeeDashboard, or existing booking/auth logic
+* DO NOT break existing functionality
+* You MAY create new models, widgets, and services
+* All map-related logic must remain modular and isolated
+
+---
+
+## 🎯 GOAL
+
+Add a professional **map-based location system** that allows venue owners to:
+
+* Select building locations via map
+* View buildings on a map
+* Store and display coordinates + address
+* Optionally visualize rooms and booking density
+
+---
+
+## 🗺️ 1. MAP INTEGRATION
+
+Use:
+
+* `google_maps_flutter` (preferred) OR `mapbox_gl` if already used
+
+### Requirements:
+
+* Display a map widget inside the Venue Owner dashboard
+* Show markers for all buildings owned by the user
+
+---
+
+## 🧱 2. DATA MODEL EXTENSION
+
+Update the **Building model** to include:
+
+* latitude (double)
+* longitude (double)
+* address (String)
+
+Optional:
+
+* geohash (for future scaling)
+
+---
+
+## 📍 3. SELECT LOCATION (CORE FEATURE)
+
+When creating or editing a building:
+
+### Add a “Pick Location” feature:
+
+* Open a full-screen map OR modal map
+* Allow user to:
+
+  * Tap on map to select location
+  * OR drag a marker
+
+### After selection:
+
+* Save:
+
+  * latitude
+  * longitude
+
+### Reverse geocoding:
+
+* Convert coordinates → readable address
+* Display address in the form
+
+---
+
+## 🧭 4. DISPLAY BUILDINGS ON MAP
+
+Inside the Venue Owner dashboard:
+
+* Add a **Map Section**
+* Show all buildings as markers
+
+Each marker:
+
+* Displays building name
+* On tap → show info window or bottom sheet:
+
+  * name
+  * address
+  * number of rooms
+
+---
+
+## 🏢 5. OPTIONAL: ROOM PINS (ADVANCED)
+
+If a building is selected:
+
+* Show rooms as sub-markers (optional)
+* OR show them in a list below the map
+
+---
+
+## 📍 6. DIRECTIONS FEATURE
+
+For each building:
+
+* Add button: **“Get Directions”**
+* Opens:
+
+  * Google Maps / Apple Maps via URL launcher
+
+---
+
+## 🔍 7. NEARBY VENUES (BASIC IMPLEMENTATION)
+
+Inside Venue Owner dashboard (or reusable logic):
+
+* Implement simple proximity search:
+
+  * Given a coordinate, find nearby buildings (within X km)
+
+Use:
+
+* Haversine formula OR simple distance calculation
+
+Display:
+
+* List of nearby buildings (for testing/demo)
+
+---
+
+## 📊 8. ADVANCED FEATURES (OPTIONAL BUT STRUCTURE FOR THEM)
+
+Design your code so these can be added later:
+
+### Marker Clustering
+
+* Group markers when zoomed out
+
+### Heatmap (booking density)
+
+* Use mock data for now:
+
+  * More bookings → stronger color
+
+### Indoor Maps (DO NOT IMPLEMENT)
+
+* Just keep architecture extensible
+
+---
+
+## 🧩 9. FILE STRUCTURE
+
+Create modular files:
+
+* widgets/
+
+  * map_view.dart
+  * location_picker.dart
+  * building_marker.dart
+
+* services/
+
+  * map_service.dart (for geocoding, distance calc)
+
+* models/
+
+  * update building_model.dart
+
+---
+
+## 🎨 10. UI/UX REQUIREMENTS
+
+* Map should feel integrated (not just dropped in)
+* Use:
+
+  * Rounded containers
+  * Section headers
+* Provide:
+
+  * Loading states
+  * Empty states (no buildings)
+
+---
+
+## ⚙️ 11. FUNCTIONAL REQUIREMENTS
+
+Must support:
+
+* Add building with map location
+* Edit building location
+* Display buildings on map
+* Tap marker → view building details
+* Open directions in external maps
+
+---
+
+## 🚫 DO NOT
+
+* Do NOT modify other dashboards
+* Do NOT refactor unrelated services
+* Do NOT introduce breaking API changes
+* Do NOT overcomplicate state management
+
+---
+
+## ✅ EXPECTED RESULT
+
+A professional map-enabled Venue Owner dashboard where:
+
+* Buildings are geo-located
+* Users can pick locations visually
+* Map enhances usability and navigation
+* Code is modular and scalable
+
+---
+
+Focus on clean UI, smooth UX, and separation of concerns.

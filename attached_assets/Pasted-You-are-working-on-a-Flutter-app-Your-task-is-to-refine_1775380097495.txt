@@ -1,0 +1,222 @@
+You are working on a Flutter app. Your task is to **refine and upgrade the UI/UX ONLY for the Venue Owner / Staff screens** to make them look **professional, polished, and production-ready**, while maintaining a **minimal black-and-white design system**.
+
+---
+
+CRITICAL CONSTRAINTS (NON-NEGOTIABLE):
+
+* ONLY modify Venue Owner / Staff related screens and widgets
+* DO NOT edit OrganizerDashboard, AttendeeDashboard, or any unrelated screens
+* DO NOT modify global theme or shared styling files
+* DO NOT break any existing functionality
+* DO NOT change navigation structure outside Venue Owner module
+* Keep the design strictly **black, white, and grayscale**
+* DO NOT introduce bright or random colors
+* Do NOT use emojis anywhere
+* Avoid generic or “AI-style” text (no filler content)
+
+---
+
+GOAL
+
+Transform the Venue Owner interface from basic/bland into a **clean, premium, minimal dashboard** that aligns with all previously implemented features (analytics, bookings, map, payments, operations, etc.).
+
+---
+
+# 1. LOCAL THEME REFINEMENT (SCOPED)
+
+Since global theme cannot be changed:
+
+* Apply **localized styling improvements** within Venue Owner widgets
+* Use:
+
+  * slightly refined grayscale tones
+  * improved contrast between surfaces
+* Maintain:
+
+  * existing border radius (12)
+  * typography family
+
+---
+
+# 2. TYPOGRAPHY IMPROVEMENTS
+
+* Strengthen hierarchy:
+
+  * Section titles → larger, bold (600–700)
+  * Subtitles → medium weight
+  * Body → regular weight
+* Add consistent vertical spacing between text elements
+* Ensure readability across all cards and sections
+
+---
+
+# 3. COMPONENT REFINEMENT
+
+## Buttons
+
+* Improve padding and sizing
+* Keep dark primary buttons
+* Add subtle press states (opacity or slight elevation)
+
+## Input Fields
+
+* Softer borders (light gray)
+* Clear focus state (darker border)
+* Consistent internal padding
+
+## Cards
+
+* Use:
+
+  * white background
+  * subtle border instead of heavy shadow
+* Maintain consistent padding (12–16)
+* Ensure uniform spacing between cards
+
+---
+
+# 4. SPACING SYSTEM
+
+Standardize spacing across Venue Owner screens:
+
+* 8 → tight spacing
+* 12–16 → normal spacing
+* 20+ → section spacing
+
+Avoid:
+
+* cramped layouts
+* inconsistent padding
+
+---
+
+# 5. VISUAL HIERARCHY
+
+Improve clarity by:
+
+* Grouping related elements into sections
+* Using spacing instead of excessive borders
+* Making key actions visually distinct
+* Reducing unnecessary UI noise
+
+---
+
+# 6. HEADER IMPROVEMENT
+
+Refine the Venue Owner header:
+
+* Align title properly
+* Improve spacing between icons
+* Add subtle bottom divider or elevation
+* Ensure consistent height and structure
+
+---
+
+# 7. DASHBOARD REFINEMENT
+
+For the Venue Owner dashboard:
+
+## Stats Cards
+
+* Uniform size and layout
+* Clear label + value hierarchy
+* Better spacing inside cards
+
+## Charts
+
+* Clean layout with proper margins
+* Use grayscale tones only
+* Avoid visual clutter
+
+## Sections
+
+* Clear separation between:
+
+  * analytics
+  * bookings
+  * resources
+  * etc.
+
+---
+
+# 8. LISTS & DATA DISPLAY
+
+* Improve readability:
+
+  * consistent row height
+  * spacing between items
+* Use minimal dividers
+* Highlight interactive elements subtly
+
+---
+
+# 9. IMAGE HANDLING
+
+* Ensure consistent:
+
+  * aspect ratio
+  * rounded corners
+* Add spacing around images
+* Avoid cluttered galleries
+
+---
+
+# 10. MICRO-INTERACTIONS
+
+Add subtle UI feedback:
+
+* Button press states
+* Tap highlights
+* Smooth transitions between states
+
+Keep interactions minimal and fast
+
+---
+
+# 11. REMOVE “BLANDNESS” (WITHOUT ADDING COLOR)
+
+To improve visual quality:
+
+* Use contrast (light vs dark surfaces)
+* Improve spacing and layout
+* Introduce section structure
+* Add subtle depth using borders and layering
+
+---
+
+# 12. CONSISTENCY PASS
+
+Ensure across ALL Venue Owner screens:
+
+* Same button styles
+* Same input styles
+* Same card design
+* Same spacing rules
+* Same typography hierarchy
+
+---
+
+# 13. DO NOT
+
+* Do NOT modify other dashboards
+* Do NOT change global theme
+* Do NOT introduce new design systems
+* Do NOT add bright colors or gradients
+* Do NOT over-design or add unnecessary animations
+
+---
+
+# EXPECTED RESULT
+
+A **refined Venue Owner interface** that:
+
+* Feels professional and production-ready
+* Maintains a strong black-and-white aesthetic
+* Has clear visual hierarchy
+* Uses spacing and contrast effectively
+* Is consistent across all Venue Owner screens
+* Integrates smoothly with existing features
+
+---
+
+Focus on refinement, consistency, and clarity — not adding complexity.

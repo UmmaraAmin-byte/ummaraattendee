@@ -1,0 +1,233 @@
+You are working on a Flutter app. Your task is to upgrade the **Venue Owner / Staff Dashboard ONLY** to a **professional-grade system** with advanced analytics and booking management.
+
+🚨 STRICT CONSTRAINTS (NON-NEGOTIABLE):
+
+* ONLY modify files related to Venue Owner / Staff functionality
+* DO NOT edit OrganizerDashboard, AttendeeDashboard, or any unrelated screens
+* DO NOT modify global theme or shared UI styles
+* ALL new UI must strictly follow the existing theme (colors, typography, spacing, components)
+* DO NOT break existing booking or auth flows
+* You MAY create new files (models, widgets, services) but they must remain scoped to venue/staff features
+
+---
+
+## 🎯 GOAL
+
+Transform the Venue Owner dashboard into a **professional management console** with:
+
+1. Advanced Analytics Dashboard
+2. Full Booking Management System
+3. Calendar-based scheduling system
+
+---
+
+# 📊 1. PROFESSIONAL ANALYTICS DASHBOARD
+
+Replace basic stats with structured analytics sections.
+
+## A. Business Metrics
+
+Display as clean stat cards (reuse existing card styles):
+
+* Total Revenue
+* Revenue per Building
+* Revenue per Room
+* Average Booking Value
+
+## B. Usage Metrics
+
+* Occupancy Rate (% time rooms are booked)
+* Most Booked Rooms (top 3–5)
+* Peak Booking Times:
+
+  * by hour (e.g., 10AM–2PM)
+  * by day (e.g., weekends)
+
+## C. Trends (Charts Required)
+
+Use a Flutter chart library (e.g., `fl_chart`) and MATCH THE APP THEME:
+
+* Bookings Over Time (line chart)
+* Revenue Trends:
+
+  * weekly
+  * monthly
+
+⚠️ Charts must:
+
+* Use theme colors (no random colors)
+* Be minimal and clean
+* Have proper spacing and labels
+
+## D. Customer Insights
+
+* Repeat Organizers (users with multiple bookings)
+* Top Clients (by bookings or revenue)
+* Cancellation Rate (%)
+
+---
+
+# 📅 2. BOOKING MANAGEMENT SYSTEM
+
+## A. Booking Inbox
+
+Create a dedicated section:
+
+### Categories:
+
+* Pending Bookings
+* Confirmed Bookings
+* Cancelled Bookings
+
+Each booking card should display:
+
+* Event name
+* Organizer name
+* Room
+* Time range
+* Status
+
+---
+
+## B. Booking Actions
+
+Each booking must support:
+
+* ✅ Approve booking
+* ❌ Reject booking
+* ✏️ Modify booking:
+
+  * change time
+  * change room
+* 🔁 Suggest alternative rooms:
+
+  * based on capacity + availability
+
+⚠️ Do NOT break existing booking logic — extend it safely.
+
+---
+
+## C. Booking Status Flow
+
+Implement clear states:
+
+* pending → confirmed / rejected
+* confirmed → cancelled
+
+---
+
+# 🗓️ 3. CALENDAR VIEW (CRITICAL FEATURE)
+
+Implement a full **calendar scheduling system**
+
+## Requirements:
+
+### Views:
+
+* Day view
+* Week view
+* Month view (optional but preferred)
+
+### Features:
+
+* Visual time blocks for bookings
+* Each booking displayed as a block
+* Tap booking → open details
+
+### Interactions:
+
+* Drag-and-drop to reschedule (if feasible)
+* Resize booking duration (optional)
+
+---
+
+## Calendar UI Behavior:
+
+* Match theme (colors, borders, typography)
+* Smooth scrolling
+* Clear time labels
+* No clutter
+
+---
+
+# 🧩 4. ARCHITECTURE
+
+Create modular structure:
+
+### widgets/
+
+* analytics_cards.dart
+* revenue_chart.dart
+* booking_list.dart
+* booking_card.dart
+* calendar_view.dart
+
+### models/
+
+* booking_model.dart (extend if needed)
+* analytics_model.dart
+
+### services/
+
+* analytics_service.dart
+* booking_management_service.dart
+
+---
+
+# 🎨 5. UI / THEME ENFORCEMENT
+
+ALL UI must:
+
+* Use existing color palette (e.g., primary dark, light backgrounds)
+* Use same border radius (12)
+* Use same spacing system
+* Use same button styles
+* Avoid introducing new design language
+
+This should feel like a **natural extension** of the current app, not a redesign.
+
+---
+
+# ⚙️ 6. FUNCTIONAL REQUIREMENTS
+
+Must support:
+
+✔ View advanced analytics
+✔ View booking trends (charts)
+✔ View and filter bookings by status
+✔ Approve / reject bookings
+✔ Modify bookings
+✔ Suggest alternative rooms
+✔ View bookings in calendar format
+✔ Interact with calendar (tap, optionally drag)
+
+---
+
+# 🚫 DO NOT
+
+* Do NOT edit other dashboards
+* Do NOT refactor unrelated services
+* Do NOT change navigation globally
+* Do NOT introduce breaking API changes
+* Do NOT ignore theme constraints
+
+---
+
+# ✅ EXPECTED RESULT
+
+A **professional Venue Owner dashboard** that includes:
+
+* Clean analytics with charts
+* Structured booking management system
+* Interactive calendar view
+* Fully consistent UI with the existing theme
+* All changes isolated to venue/staff-related code
+
+---
+
+Focus on:
+
+* clean architecture
+* modular widgets
+* production-quality UI
+* scalability

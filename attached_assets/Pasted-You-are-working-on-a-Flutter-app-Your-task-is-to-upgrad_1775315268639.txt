@@ -1,0 +1,263 @@
+You are working on a Flutter app. Your task is to upgrade the **Venue Owner Dashboard ONLY** into a professional-grade venue management system.
+
+🚨 CRITICAL CONSTRAINTS:
+
+* DO NOT modify any existing screens except the Venue Owner dashboard and files directly related to it
+* DO NOT change OrganizerDashboard, AttendeeDashboard, AuthService (unless extending safely), or global theme
+* DO NOT break existing functionality (event creation, booking, auth)
+* You MAY create new files (models, widgets, services) if needed
+* Keep all changes modular and isolated
+
+---
+
+## 🎯 GOAL
+
+Transform the Venue Owner dashboard into a **hierarchical venue management system** with:
+
+Venue Owner
+→ Buildings
+→ Rooms
+
+And add:
+
+* Availability management
+* Pricing system
+* Better structured UI
+
+---
+
+## 🏢 1. DATA MODEL (VERY IMPORTANT)
+
+Refactor the current flat room structure into:
+
+### Building Model
+
+* id (String)
+* name (String)
+* address (String)
+* description (String)
+* imageUrls (List<String>)
+* createdAt (DateTime)
+
+### Room Model
+
+* id (String)
+* buildingId (String)
+* name (String)
+* capacity (int)
+* type (enum: hall, conference, outdoor, etc.)
+* floor (String or int)
+* description (String)
+* amenities (List<String>)
+* imageUrls (List<String>)
+
+### Availability Model
+
+* roomId (String)
+* workingHours (startTime, endTime)
+* blackoutDates (List<DateTime>)
+* maintenanceBlocks (List<DateRange>)
+* recurringDays (List<int>) // 1-7 for weekdays
+
+### Pricing Model
+
+* roomId (String)
+* hourlyRate (double)
+* dailyRate (double)
+* weekendMultiplier (double)
+* peakHourMultiplier (double)
+* addOns (Map<String, double>)
+  // e.g. { "Projector": 50, "Catering": 200 }
+
+---
+
+## 🧱 2. UI STRUCTURE (VENUE OWNER DASHBOARD)
+
+Redesign the dashboard into sections:
+
+### Header
+
+* Venue Owner name
+* Quick stats:
+
+  * total buildings
+  * total rooms
+  * total bookings (reuse existing if available)
+
+---
+
+### Section 1: Buildings List
+
+* Card-based layout
+* Each building shows:
+
+  * name
+  * address
+  * number of rooms
+* Actions:
+
+  * "Add Building"
+  * "Edit"
+  * "Delete"
+  * "View Rooms"
+
+---
+
+### Section 2: Rooms (Nested under Building)
+
+When a building is selected:
+
+* Show list of rooms
+* Each room card includes:
+
+  * name
+  * capacity
+  * type
+  * floor
+* Actions:
+
+  * Add Room
+  * Edit Room
+  * Delete Room
+
+---
+
+### Forms (Bottom Sheets or Dialogs)
+
+Create reusable forms for:
+
+* Add/Edit Building
+* Add/Edit Room
+
+Each form must include:
+
+* Validation
+* Clean UI (use existing theme)
+
+---
+
+## 📅 3. AVAILABILITY MANAGEMENT
+
+For each room:
+
+Add UI to configure:
+
+* Working hours (time pickers)
+* Blackout dates (date picker list)
+* Maintenance blocks (date range picker)
+* Recurring availability (weekday selector)
+
+Display:
+
+* Summary of availability inside room card
+
+Store data locally (or via AuthService extension if already used)
+
+---
+
+## 💰 4. PRICING SYSTEM
+
+Each room should support:
+
+### Pricing UI:
+
+* Hourly rate input
+* Daily rate input
+* Weekend multiplier
+* Peak hour multiplier
+
+### Add-ons:
+
+* Dynamic list:
+
+  * Add/remove items
+  * Name + price
+
+Example:
+Projector → $50
+Catering → $200
+
+---
+
+## 🧠 5. STATE MANAGEMENT
+
+* Use setState for now (keep consistent with current codebase)
+* Keep logic inside the Venue Owner module
+* Avoid introducing heavy state libraries unless already used
+
+---
+
+## 🧩 6. FILE STRUCTURE (CREATE IF NEEDED)
+
+You may create:
+
+* models/
+
+  * building_model.dart
+  * room_model.dart
+  * pricing_model.dart
+  * availability_model.dart
+
+* widgets/
+
+  * building_card.dart
+  * room_card.dart
+  * add_building_sheet.dart
+  * add_room_sheet.dart
+
+* services/
+
+  * venue_service.dart (local in-memory storage similar to AuthService)
+
+---
+
+## 🎨 7. UI/UX REQUIREMENTS
+
+* Follow existing theme (colors, typography)
+* Use:
+
+  * Cards
+  * Rounded corners
+  * Consistent spacing
+* Keep it clean and minimal (similar to OrganizerDashboard)
+* Ensure scrollable layout
+
+---
+
+## ⚙️ 8. FUNCTIONAL REQUIREMENTS
+
+Must support:
+
+* Create building
+* Edit building
+* Delete building
+* Add rooms to building
+* Edit rooms
+* Delete rooms
+* Assign availability to rooms
+* Assign pricing to rooms
+* Add/remove add-ons
+
+---
+
+## 🚫 DO NOT
+
+* Do NOT modify OrganizerDashboard logic
+* Do NOT remove existing booking system
+* Do NOT refactor unrelated services
+* Do NOT introduce breaking API changes
+
+---
+
+## ✅ EXPECTED RESULT
+
+A fully functional Venue Owner dashboard where:
+
+* Buildings contain rooms
+* Rooms have availability + pricing
+* UI is structured, scalable, and professional
+* Existing app continues to work unchanged
+
+---
+
+Focus on clean architecture, modular widgets, and readable code.

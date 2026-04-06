@@ -1,0 +1,287 @@
+You are working on a Flutter app. Your task is to implement **Communication, Contracts, and Payments features** for the **Venue Owner / Staff Dashboard ONLY**.
+
+---
+
+🚨 STRICT CONSTRAINTS (NON-NEGOTIABLE):
+
+* ONLY modify files related to Venue Owner / Staff functionality
+* DO NOT edit OrganizerDashboard, AttendeeDashboard, or any unrelated screens
+* DO NOT modify global theme, styles, or shared components
+* ALL UI must strictly follow the existing theme (colors, typography, spacing, border radius)
+* DO NOT break existing booking or authentication logic
+* You MAY create new models, widgets, and services, but they must remain isolated to venue/staff features
+
+---
+
+# 🎯 GOAL
+
+Upgrade the Venue Owner dashboard into a **business-ready platform** by adding:
+
+1. Communication system (chat + notifications)
+2. Contracts & document management
+3. Payments & billing system
+
+---
+
+# 💬 1. COMMUNICATION SYSTEM
+
+## A. Chat with Event Organizers
+
+Implement a simple **in-app messaging system** between:
+
+* Venue Owner (staff)
+* Event Organizer
+
+### Features:
+
+* Chat per booking (1:1 conversation)
+* Messages include:
+
+  * text
+  * timestamp
+  * sender (owner or organizer)
+
+### UI:
+
+* Chat screen (opened from booking details)
+* Message bubbles:
+
+  * align left/right based on sender
+* Input field + send button
+
+---
+
+## B. Booking Notes / Instructions
+
+Each booking should support:
+
+* Internal notes (visible to staff only)
+* Instructions for organizer (visible to organizer)
+
+### UI:
+
+* Add notes section inside booking details
+* Editable text fields
+
+---
+
+## C. Notifications System
+
+Implement in-app notifications for:
+
+* New booking request
+* Booking cancellation
+* Upcoming event reminder
+
+### Requirements:
+
+* Notification list UI (inside dashboard)
+* Each notification includes:
+
+  * title
+  * short message
+  * timestamp
+
+Optional:
+
+* Badge indicator (unread count)
+
+⚠️ Keep it simple (no push notifications required yet)
+
+---
+
+# 🧾 2. CONTRACTS & DOCUMENTS
+
+## A. Auto-Generated Booking Agreements
+
+When a booking is confirmed:
+
+* Generate a simple agreement document (text-based)
+
+Include:
+
+* Event details
+* Venue details
+* Date & time
+* Pricing summary
+* Terms & conditions
+
+### UI:
+
+* “View Agreement” button in booking details
+* Display in a scrollable modal or screen
+
+---
+
+## B. Document Upload
+
+Allow venue owners to upload:
+
+* Licenses
+* Permits
+* Certificates
+
+### Requirements:
+
+* File picker (local files)
+* Store file metadata (name, type)
+
+### UI:
+
+* “Documents” section in dashboard
+* List of uploaded files
+
+---
+
+## C. Terms & Conditions per Venue
+
+Each building/venue should support:
+
+* Custom terms & conditions text
+
+### UI:
+
+* Editable field in building settings
+* Used in agreement generation
+
+---
+
+# 💳 3. PAYMENTS & BILLING
+
+## A. Payment Integration (Mock or Stripe-ready)
+
+Implement structure for:
+
+* Accepting payments
+
+If real integration is complex:
+
+* Simulate payment success/failure
+
+---
+
+## B. Payment Tracking
+
+Each booking should include:
+
+* Payment status:
+
+  * pending
+  * paid
+  * refunded
+
+---
+
+## C. Invoice Generation
+
+Generate invoice for each booking:
+
+Include:
+
+* Booking details
+* Room + building
+* Pricing breakdown
+* Total amount
+
+### UI:
+
+* “View Invoice” button
+* Display in modal or new screen
+
+---
+
+## D. Refund Handling
+
+Allow:
+
+* Mark booking as refunded
+* Update payment status
+
+---
+
+# 🧩 4. FILE STRUCTURE
+
+Create modular files:
+
+### models/
+
+* message_model.dart
+* notification_model.dart
+* document_model.dart
+* invoice_model.dart
+* payment_model.dart
+
+### services/
+
+* chat_service.dart
+* notification_service.dart
+* document_service.dart
+* payment_service.dart
+
+### widgets/
+
+* chat_screen.dart
+* message_bubble.dart
+* notification_list.dart
+* document_list.dart
+* invoice_view.dart
+
+---
+
+# 🎨 5. UI / THEME REQUIREMENTS
+
+ALL UI must:
+
+* Use existing colors (e.g., dark primary, light background)
+* Use same border radius (12)
+* Use same input fields and button styles
+* Maintain consistent spacing
+* Look like a natural extension of current dashboard
+
+DO NOT introduce new design systems.
+
+---
+
+# ⚙️ 6. FUNCTIONAL REQUIREMENTS
+
+Must support:
+
+✔ Chat between venue owner and organizer
+✔ Booking notes and instructions
+✔ Notification list for booking events
+✔ View generated agreements
+✔ Upload and manage documents
+✔ Add terms per venue
+✔ Track payment status
+✔ View invoices
+✔ Handle refunds (basic logic)
+
+---
+
+# 🚫 DO NOT
+
+* Do NOT modify other dashboards
+* Do NOT refactor unrelated services
+* Do NOT introduce breaking API changes
+* Do NOT overcomplicate state management
+
+---
+
+# ✅ EXPECTED RESULT
+
+A **professional Venue Owner system** where:
+
+* Owners can communicate with organizers
+* Contracts and documents are managed cleanly
+* Payments and invoices are tracked
+* UI is consistent with the app’s theme
+* All features are modular and scalable
+
+---
+
+Focus on:
+
+* clean architecture
+* modular components
+* production-quality UI
+* maintainability
